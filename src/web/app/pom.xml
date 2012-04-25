@@ -665,6 +665,7 @@
           <artifactId>wfseditor</artifactId>
           <version>${project.version}</version>
         </dependency>
+      </dependencies>
     </profile>
  </profiles>
 </project>
