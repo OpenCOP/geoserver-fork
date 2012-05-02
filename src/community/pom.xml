@@ -181,5 +181,11 @@
         <module>authkey</module>
       </modules>
     </profile>
+    <profile>      
+      <id>webeoc</id>
+      <modules>
+        <module>webeoc</module>
+      </modules>
+    </profile>
   </profiles>
 </project>
