@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN" "http://www.springframework.org/dtd/spring-beans.dtd">
+
+<beans>
+   
+  <bean id="webeocCategory" class="org.geoserver.web.Category">
+     <property name="nameKey" value="category.webeoc"/>
+     <property name="order" value="400"/>
+  </bean> 
+    
+  <bean id="createWebEOCLayerPage" class="org.geoserver.web.MenuPageInfo">
+    <property name="id" value="createWebEOCLayerPage"/>
+    <property name="titleKey" value="CreateWebEOCLayerPage.title"/>
+    <property name="descriptionKey" value="CreateWebEOCLayerPage.description"/>
+    <property name="componentClass" value="org.geoserver.web.data.webeoc.CreateWebEOCLayerPage"/>
+    <property name="category" ref="webeocCategory"/>
+    <property name="order" value="10"/>
+  </bean>
+  
+  <bean id="webEOCLayerEditTabPanelInfo" class="org.geoserver.web.data.resource.LayerEditTabPanelInfo">
+    <property name="id" value="webEOCLayerEditTabPanelInfo" />
+    <property name="titleKey" value="WebEOCLayerEditTabPanelInfo.title" />
+    <property name="descriptionKey" value="WebEOCLayerEditTabPanelInfo.shortDescription" />
+    <property name="componentClass"
+      value="org.geoserver.web.data.resource.WebEOCTabPanel" />
+    <property name="order" value="500" />
+  </bean>
+
+</beans>
