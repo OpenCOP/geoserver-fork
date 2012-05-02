@@ -184,6 +184,7 @@
     <profile>      
       <id>webeoc</id>
       <modules>
+        <module>storelist</module>
         <module>webeoc</module>
       </modules>
     </profile>
