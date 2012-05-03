@@ -1,4 +1,4 @@
-package org.geoserver.web.data.store;
+package org.geoserver.web.data.webeoc;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -17,7 +17,7 @@ import org.geotools.data.DataAccessFactory;
 import org.geotools.data.webeoc.WebEOCDataStoreFactory;
 
 /**
- * Model providing the list of PostGIS stores.
+ * Model providing the list of WebEOC datastores.
  * 
  */
 public class WebEOCStoreListModel extends LoadableDetachableModel<List<DataStoreInfo>> {
