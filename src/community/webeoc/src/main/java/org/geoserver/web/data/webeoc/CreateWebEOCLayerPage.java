@@ -1,46 +1,48 @@
 package org.geoserver.web.data.webeoc;
 
 import com.esi911.webeoc7.api._1.API;
-import com.esi911.webeoc7.api._1.ArrayOfString;
 import com.esi911.webeoc7.api._1.WebEOCCredentials;
+import java.io.IOException;
 import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import org.apache.wicket.Component;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.form.AjaxFormComponentUpdatingBehavior;
-import org.apache.wicket.ajax.form.OnChangeAjaxBehavior;
-import org.apache.wicket.markup.html.WebMarkupContainer;
-import org.apache.wicket.markup.html.basic.Label;
 import org.apache.wicket.markup.html.form.DropDownChoice;
 import org.apache.wicket.markup.html.form.Form;
 import org.apache.wicket.markup.html.form.SubmitLink;
 import org.apache.wicket.markup.html.form.TextField;
 import org.apache.wicket.markup.html.link.BookmarkablePageLink;
-import org.apache.wicket.markup.html.panel.Panel;
 import org.apache.wicket.model.AbstractReadOnlyModel;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.Model;
 import org.apache.wicket.model.PropertyModel;
 import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.CatalogBuilder;
+import org.geoserver.catalog.DataStoreInfo;
 import org.geoserver.catalog.FeatureTypeInfo;
 import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.MetadataMap;
+import org.geoserver.catalog.ProjectionPolicy;
 import org.geoserver.catalog.StoreInfo;
-import org.geoserver.catalog.impl.LayerInfoImpl;
 import org.geoserver.web.GeoServerHomePage;
 import org.geoserver.web.GeoServerSecuredPage;
 import org.geoserver.web.data.store.StoreListChoiceRenderer;
-import org.geoserver.web.data.store.StoreListModel;
+import org.geoserver.web.wicket.ParamResourceModel;
+import org.geotools.data.DataStore;
+import org.geotools.data.FeatureSource;
 import org.geotools.data.webeoc.WebEOCDataStoreFactory;
+import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.CRS;
+import org.opengis.feature.simple.SimpleFeature;
+import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 /**
@@ -48,15 +50,12 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
  * @author yancy
  */
 public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
-  public static final String WEBEOC_INCIDENT = "webeocIncident";
-  public static final String WEBEOC_BOARD = "webeocBoard";
-  public static final String WEBEOC_VIEW = "webeocView";
   
   static final CoordinateReferenceSystem WGS84;
 
   static {
     try {
-      WGS84 = CRS.decode("EPSG:4326");
+      WGS84 = CRS.decode(WebEOCConstants.DEFAULT_CRS);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -78,21 +77,21 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
     webeocLayerInfo = new WebEOCLayerInfoImpl();
     
     // create the form
-    form = new Form("form");
-    add(form);
+//    form = new Form("form");
+    add(form = new Form("form"));
     
     // create the datastore picker, only include WebEOC stores
-    stores = getStoresDropDown();
-    form.add(stores);
+//    stores = getStoresDropDown();
+    form.add(stores = getStoresDropDown());
     
-    incidents = getIncidentsDropDown();
-    form.add(incidents);
+//    incidents = getIncidentsDropDown();
+    form.add(incidents = getIncidentsDropDown());
 
-    boards = getBoardsDropDown();
-    form.add(boards);
+//    boards = getBoardsDropDown();
+    form.add(boards = getBoardsDropDown());
     
-    views = getViewsDropDown();
-    form.add(views);
+//    views = getViewsDropDown();
+    form.add(views = getViewsDropDown());
 
     // create the title field
     form.add(layerTitle = new TextField<String>("layerTitle", new Model<String>()));
@@ -109,30 +108,91 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
     form.setDefaultButton(saveLink);
   }
 
-
   private void submit() {
+    String layername = layerTitle.getDefaultModelObjectAsString();
     Catalog catalog = getCatalog();
-        CatalogBuilder builder = new CatalogBuilder(catalog);
-        builder.setStore((StoreInfo)stores.getDefaultModelObject());
-//
-//        // Build the geoserver feature type object
-//        FeatureTypeInfo fti = builder.buildFeatureType(getFeatureSource(ds, layerTitle.getDefaultModelObjectAsString()));
-//        // Set the bounding boxes to makes things happy
-//        ReferencedEnvelope world = new ReferencedEnvelope(-180, 180, -90, 90, WGS84);
-//        fti.setLatLonBoundingBox(world);
-//        fti.setNativeBoundingBox(world);
-//
-        // Build the geoserver layer object
-//        LayerInfo layerInfo = builder.buildLayer(fti);
-        LayerInfo layerInfo = new LayerInfoImpl();
-        layerInfo.setName(layerTitle.getDefaultModelObjectAsString());
-        MetadataMap map = layerInfo.getMetadata();
-        map.put(WEBEOC_INCIDENT, webeocLayerInfo.getIncident());
-        map.put(WEBEOC_BOARD, webeocLayerInfo.getBoard());
-        map.put(WEBEOC_VIEW, webeocLayerInfo.getView());
-        
-    // Save the layer and resource
-    catalog.save(layerInfo);
+
+    // create table
+    DataStore ds = null;
+    DataStoreInfo dsInfo = null;
+    try {
+      // basic checks
+      dsInfo = catalog.getDataStore(((StoreInfo) stores.getDefaultModelObject()).getId());
+      ds = (DataStore) dsInfo.getDataStore(null);
+      // Check if the layername already exists in the datastore
+      if (Arrays.asList(ds.getTypeNames()).contains(layername)) {
+        error(new ParamResourceModel("duplicateTypeName", this, dsInfo.getName(),
+                layername).getString());
+        return;
+      }
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+
+    // Convert the fields to a SimpleFeatureType
+    SimpleFeatureType featureType = buildFeatureType(getViewFields(), layername);
+    try {
+      // Persist the SimpleFeatureType to the datastore
+      ds.createSchema(featureType);
+    } catch (IOException ex) {
+      Logger.getLogger(CreateWebEOCLayerPage.class.getName()).log(Level.SEVERE, null, ex);
+    }
+
+    // Get the catalog builder and set it to use the selected datastore
+    CatalogBuilder builder = new CatalogBuilder(catalog);
+    builder.setStore(dsInfo);
+
+    // Build the geoserver feature type object
+    FeatureTypeInfo fti;
+    try {
+      fti = builder.buildFeatureType(getFeatureSource(ds, layername));
+      // Set the bounding boxes to makes things happy
+      ReferencedEnvelope world = new ReferencedEnvelope(-180, 180, -90, 90, WGS84);
+      fti.setSRS(WebEOCConstants.DEFAULT_CRS);
+      fti.setProjectionPolicy(ProjectionPolicy.FORCE_DECLARED);
+      fti.setLatLonBoundingBox(world);
+      fti.setNativeBoundingBox(world);
+      // Build the geoserver layer object
+      LayerInfo layerInfo = builder.buildLayer(fti);
+      layerInfo.setName(layername);
+      // Put the WebEOC configs in the metadata for the feature type
+      MetadataMap map = fti.getMetadata();
+      map.put(WebEOCConstants.WEBEOC_INCIDENT_KEY, webeocLayerInfo.getIncident());
+      map.put(WebEOCConstants.WEBEOC_BOARD_KEY, webeocLayerInfo.getBoard());
+      map.put(WebEOCConstants.WEBEOC_VIEW_KEY, webeocLayerInfo.getView());
+
+      // Save the layer and resource
+      catalog.add(fti);
+      catalog.add(layerInfo);
+    } catch (IOException ex) {
+      Logger.getLogger(CreateWebEOCLayerPage.class.getName()).log(Level.SEVERE, null, ex);
+    }
+
+  }
+
+  FeatureSource<SimpleFeatureType, SimpleFeature> getFeatureSource(DataStore ds, String name)
+          throws IOException {
+    try {
+      return ds.getFeatureSource(name);
+    } catch (IOException e) {
+      // maybe it's Oracle?
+      try {
+        return ds.getFeatureSource(name.toUpperCase());
+      } catch (Exception ora) {
+        // nope, the reason was another one
+        throw e;
+      }
+    }
+  }
+
+  SimpleFeatureType buildFeatureType(List<String> fields, String name) {
+    SimpleFeatureTypeBuilder builder = new SimpleFeatureTypeBuilder();
+    for (String field : fields) {
+      // TODO: Make the bindings selectable
+      builder.add(field, String.class);
+    }
+    builder.setName(name);
+    return builder.buildFeatureType();
   }
 
 
@@ -149,13 +209,13 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
       protected void onUpdate(AjaxRequestTarget target) {
         StoreInfo storeInfo = (StoreInfo) stores.getModelObject();
         Map<String, Serializable> connectionParameters = storeInfo.getConnectionParameters();
-        credentials.setUsername(connectionParameters.get(WebEOCDataStoreFactory.WEBEOC_USER.key).toString());
-        credentials.setPassword(connectionParameters.get(WebEOCDataStoreFactory.WEBEOC_PASSWORD.key).toString());
-        credentials.setPosition(connectionParameters.get(WebEOCDataStoreFactory.WEBEOC_POSITION.key).toString());
+        credentials.setUsername(connectionParameters.get(WebEOCConstants.WEBEOC_USER_KEY).toString());
+        credentials.setPassword(connectionParameters.get(WebEOCConstants.WEBEOC_PASSWORD_KEY).toString());
+        credentials.setPosition(connectionParameters.get(WebEOCConstants.WEBEOC_POSITION_KEY).toString());
         
         try {
           webEOC = new API(new URL(
-              connectionParameters.get(WebEOCDataStoreFactory.WEBEOC_WSDL.key).toString()));
+              connectionParameters.get(WebEOCConstants.WEBEOC_WSDL_KEY).toString()));
         } catch (MalformedURLException e) {
           // TODO Auto-generated catch block
           e.printStackTrace();
@@ -199,7 +259,7 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
   private DropDownChoice getBoardsDropDown() {
     final IModel boardChoiceModel = new AbstractReadOnlyModel() {
       public Object getObject() {
-        if (credentials == null || null == webEOC ) {
+        if (null == credentials || null == webEOC ) {
           return Collections.EMPTY_LIST;
         }
         return getBoards();
@@ -224,7 +284,7 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
   private DropDownChoice getViewsDropDown() {   
     final IModel viewChoiceModel = new AbstractReadOnlyModel() {
       public Object getObject() {
-        if (credentials == null || null == webEOC ) {
+        if (null == credentials || null == webEOC ) {
           return Collections.EMPTY_LIST;
         }
         return getViews();
@@ -238,7 +298,8 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
     viewsChoice.add(new AjaxFormComponentUpdatingBehavior("onchange") {
       @Override
       protected void onUpdate(AjaxRequestTarget target) {
-        System.out.println(getViewFields());
+//        System.out.println(getViewFields());
+        // Create the column datatype editor
       }
     });
     return viewsChoice;
