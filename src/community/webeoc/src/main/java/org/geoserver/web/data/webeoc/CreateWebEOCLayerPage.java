@@ -1,7 +1,7 @@
 package org.geoserver.web.data.webeoc;
 
 import com.esi911.webeoc7.api._1.API;
-import com.esi911.webeoc7.api._1.WebEOCCredentials;
+import com.esi911.webeoc7.api._1.APISoap;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.MalformedURLException;
@@ -37,7 +37,6 @@ import org.geoserver.web.data.store.StoreListChoiceRenderer;
 import org.geoserver.web.wicket.ParamResourceModel;
 import org.geotools.data.DataStore;
 import org.geotools.data.FeatureSource;
-import org.geotools.data.webeoc.WebEOCDataStoreFactory;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.CRS;
@@ -50,7 +49,7 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
  * @author yancy
  */
 public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
-  
+
   static final CoordinateReferenceSystem WGS84;
 
   static {
@@ -67,30 +66,22 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
   private final DropDownChoice boards;
   private final DropDownChoice views;
   private final TextField<String> layerTitle;
-  private final WebEOCCredentials credentials;
+  private final WebEOCCredentialsSerializedWrapper credentials;
   private final WebEOCLayerInfo webeocLayerInfo;
-  
-		API webEOC;
-  
-  public CreateWebEOCLayerPage() {
-    credentials = new WebEOCCredentials();
-    webeocLayerInfo = new WebEOCLayerInfoImpl();
-    
-    // create the form
-//    form = new Form("form");
-    add(form = new Form("form"));
-    
-    // create the datastore picker, only include WebEOC stores
-//    stores = getStoresDropDown();
-    form.add(stores = getStoresDropDown());
-    
-//    incidents = getIncidentsDropDown();
-    form.add(incidents = getIncidentsDropDown());
 
-//    boards = getBoardsDropDown();
+  private String wsdlUrl;
+
+  public CreateWebEOCLayerPage() {
+    credentials = new WebEOCCredentialsSerializedWrapper();
+    webeocLayerInfo = new WebEOCLayerInfoImpl();
+
+    // create the form
+    add(form = new Form("form"));
+
+    // create all the dropdowns
+    form.add(stores = getStoresDropDown());
+    form.add(incidents = getIncidentsDropDown());
     form.add(boards = getBoardsDropDown());
-    
-//    views = getViewsDropDown();
     form.add(views = getViewsDropDown());
 
     // create the title field
@@ -150,8 +141,8 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
       ReferencedEnvelope world = new ReferencedEnvelope(-180, 180, -90, 90, WGS84);
       fti.setSRS(WebEOCConstants.DEFAULT_CRS);
       fti.setProjectionPolicy(ProjectionPolicy.FORCE_DECLARED);
-      fti.setLatLonBoundingBox(world);
       fti.setNativeBoundingBox(world);
+      fti.setLatLonBoundingBox(world);
       // Build the geoserver layer object
       LayerInfo layerInfo = builder.buildLayer(fti);
       layerInfo.setName(layername);
@@ -195,10 +186,9 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
     return builder.buildFeatureType();
   }
 
-
   private DropDownChoice getStoresDropDown() {
-    DropDownChoice storesChoice = new DropDownChoice("storesDropDown", new Model(), 
-             new WebEOCStoreListModel(), new StoreListChoiceRenderer());
+    DropDownChoice storesChoice = new DropDownChoice("storesDropDown", new Model(),
+            new WebEOCStoreListModel(), new StoreListChoiceRenderer());
     storesChoice.setOutputMarkupId(true);
     storesChoice.setRequired(true);
 
@@ -212,15 +202,9 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
         credentials.setUsername(connectionParameters.get(WebEOCConstants.WEBEOC_USER_KEY).toString());
         credentials.setPassword(connectionParameters.get(WebEOCConstants.WEBEOC_PASSWORD_KEY).toString());
         credentials.setPosition(connectionParameters.get(WebEOCConstants.WEBEOC_POSITION_KEY).toString());
-        
-        try {
-          webEOC = new API(new URL(
-              connectionParameters.get(WebEOCConstants.WEBEOC_WSDL_KEY).toString()));
-        } catch (MalformedURLException e) {
-          // TODO Auto-generated catch block
-          e.printStackTrace();
-        }
-        
+
+        wsdlUrl = connectionParameters.get(WebEOCConstants.WEBEOC_WSDL_KEY).toString();
+
         if (target != null) {
           target.addComponent(incidents);
         }
@@ -232,22 +216,22 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
   private DropDownChoice getIncidentsDropDown() {
     final IModel incidentChoiceModel = new AbstractReadOnlyModel() {
       public Object getObject() {
-        if (null == credentials || null == webEOC ) {
+        if (null == credentials || null == wsdlUrl || wsdlUrl.isEmpty()) {
           return Collections.EMPTY_LIST;
         }
         return getIncidents();
       }
     };
-    DropDownChoice incidentsChoice = new DropDownChoice("incidents", 
+    DropDownChoice incidentsChoice = new DropDownChoice("incidents",
             new PropertyModel(webeocLayerInfo, "incident"), incidentChoiceModel);
     incidentsChoice.setOutputMarkupId(true);
     incidentsChoice.setRequired(true);
-    
+
     incidentsChoice.add(new AjaxFormComponentUpdatingBehavior("onchange") {
       @Override
       protected void onUpdate(AjaxRequestTarget target) {
         credentials.setIncident(getDefaultModelObjectAsString());
-        
+
         if (target != null) {
           target.addComponent(boards);
         }
@@ -259,17 +243,17 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
   private DropDownChoice getBoardsDropDown() {
     final IModel boardChoiceModel = new AbstractReadOnlyModel() {
       public Object getObject() {
-        if (null == credentials || null == webEOC ) {
+        if (null == credentials || null == wsdlUrl || wsdlUrl.isEmpty()) {
           return Collections.EMPTY_LIST;
         }
         return getBoards();
       }
     };
-    DropDownChoice boardsChoice = new DropDownChoice("boards", 
+    DropDownChoice boardsChoice = new DropDownChoice("boards",
             new PropertyModel(webeocLayerInfo, "board"), boardChoiceModel);
     boardsChoice.setOutputMarkupId(true);
     boardsChoice.setRequired(true);
-    
+
     boardsChoice.add(new AjaxFormComponentUpdatingBehavior("onchange") {
       @Override
       protected void onUpdate(AjaxRequestTarget target) {
@@ -281,16 +265,16 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
     return boardsChoice;
   }
 
-  private DropDownChoice getViewsDropDown() {   
+  private DropDownChoice getViewsDropDown() {
     final IModel viewChoiceModel = new AbstractReadOnlyModel() {
       public Object getObject() {
-        if (null == credentials || null == webEOC ) {
+        if (null == credentials || null == wsdlUrl || wsdlUrl.isEmpty()) {
           return Collections.EMPTY_LIST;
         }
         return getViews();
       }
     };
-    DropDownChoice viewsChoice = new DropDownChoice("views", 
+    DropDownChoice viewsChoice = new DropDownChoice("views",
             new PropertyModel(webeocLayerInfo, "view"), viewChoiceModel);
     viewsChoice.setOutputMarkupId(true);
     viewsChoice.setRequired(true);
@@ -304,24 +288,34 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
     });
     return viewsChoice;
   }
-  
+
 
   /*  WebEOC API calls  */
+  private APISoap getWebEOC() {
+    APISoap webEOC = null;
+    try {
+      webEOC = (new API(new URL(wsdlUrl))).getAPISoap();
+    } catch (MalformedURLException e) {
+      error("Bad WebEOC URL specified in datastore.");
+    }
+    return webEOC;
+  }
+  
   private List<String> getIncidents() {
-    return webEOC.getAPISoap().getIncidents(credentials).getString();
+    return getWebEOC().getIncidents(credentials.getWebEOCCredentials()).getString();
   }
 
   private List<String> getBoards() {
-    return webEOC.getAPISoap().getBoardNames(credentials).getString();
+    return getWebEOC().getBoardNames(credentials.getWebEOCCredentials()).getString();
   }
 
   private List<String> getViews() {
-    return webEOC.getAPISoap().getDisplayViews(credentials, 
+    return getWebEOC().getDisplayViews(credentials.getWebEOCCredentials(),
             webeocLayerInfo.getBoard()).getString();
   }
 
   private List<String> getViewFields() {
-    return webEOC.getAPISoap().getViewFields(credentials, 
+    return getWebEOC().getViewFields(credentials.getWebEOCCredentials(),
             webeocLayerInfo.getBoard(),
             webeocLayerInfo.getView()).getString();
   }

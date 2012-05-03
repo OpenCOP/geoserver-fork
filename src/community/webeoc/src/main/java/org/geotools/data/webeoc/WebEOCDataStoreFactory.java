@@ -12,7 +12,7 @@ public class WebEOCDataStoreFactory extends PostgisNGDataStoreFactory {
     public static final Param WEBEOC_WSDL = new Param(WebEOCConstants.WEBEOC_WSDL_KEY, 
             String.class, "The WSDL address for the WebEOC service.", true);
     public static final Param WEBEOC_POSITION = new Param(WebEOCConstants.WEBEOC_POSITION_KEY, 
-            String.class, "WebEOC Position", false);
+            String.class, "WebEOC Position", true);
     public static final Param WEBEOC_USER = new Param(WebEOCConstants.WEBEOC_USER_KEY, 
             String.class, "WebEOC User", true);
     public static final Param WEBEOC_PASSWORD = new Param(WebEOCConstants.WEBEOC_PASSWORD_KEY, 
