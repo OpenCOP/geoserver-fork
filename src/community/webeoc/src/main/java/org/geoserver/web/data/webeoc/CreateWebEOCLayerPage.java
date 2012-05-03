@@ -27,10 +27,13 @@ import org.apache.wicket.model.AbstractReadOnlyModel;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.Model;
 import org.apache.wicket.model.PropertyModel;
+import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.CatalogBuilder;
 import org.geoserver.catalog.FeatureTypeInfo;
 import org.geoserver.catalog.LayerInfo;
+import org.geoserver.catalog.MetadataMap;
 import org.geoserver.catalog.StoreInfo;
+import org.geoserver.catalog.impl.LayerInfoImpl;
 import org.geoserver.web.GeoServerHomePage;
 import org.geoserver.web.GeoServerSecuredPage;
 import org.geoserver.web.data.store.StoreListChoiceRenderer;
@@ -45,6 +48,10 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
  * @author yancy
  */
 public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
+  public static final String WEBEOC_INCIDENT = "webeocIncident";
+  public static final String WEBEOC_BOARD = "webeocBoard";
+  public static final String WEBEOC_VIEW = "webeocView";
+  
   static final CoordinateReferenceSystem WGS84;
 
   static {
@@ -75,15 +82,69 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
     add(form);
     
     // create the datastore picker, only include WebEOC stores
-    stores = new DropDownChoice("storesDropDown", new Model(), 
-             new WebEOCStoreListModel(), new StoreListChoiceRenderer());
-    stores.setOutputMarkupId(true);
-    stores.setRequired(true);
+    stores = getStoresDropDown();
     form.add(stores);
+    
+    incidents = getIncidentsDropDown();
+    form.add(incidents);
+
+    boards = getBoardsDropDown();
+    form.add(boards);
+    
+    views = getViewsDropDown();
+    form.add(views);
+
+    // create the title field
+    form.add(layerTitle = new TextField<String>("layerTitle", new Model<String>()));
+
+    // create the save and cancel buttons
+    form.add(new BookmarkablePageLink("cancel", GeoServerHomePage.class));
+    SubmitLink saveLink = new SubmitLink("save", form) {
+      @Override
+      public void onSubmit() {
+        submit();
+      }
+    };
+    form.add(saveLink);
+    form.setDefaultButton(saveLink);
+  }
+
+
+  private void submit() {
+    Catalog catalog = getCatalog();
+        CatalogBuilder builder = new CatalogBuilder(catalog);
+        builder.setStore((StoreInfo)stores.getDefaultModelObject());
+//
+//        // Build the geoserver feature type object
+//        FeatureTypeInfo fti = builder.buildFeatureType(getFeatureSource(ds, layerTitle.getDefaultModelObjectAsString()));
+//        // Set the bounding boxes to makes things happy
+//        ReferencedEnvelope world = new ReferencedEnvelope(-180, 180, -90, 90, WGS84);
+//        fti.setLatLonBoundingBox(world);
+//        fti.setNativeBoundingBox(world);
+//
+        // Build the geoserver layer object
+//        LayerInfo layerInfo = builder.buildLayer(fti);
+        LayerInfo layerInfo = new LayerInfoImpl();
+        layerInfo.setName(layerTitle.getDefaultModelObjectAsString());
+        MetadataMap map = layerInfo.getMetadata();
+        map.put(WEBEOC_INCIDENT, webeocLayerInfo.getIncident());
+        map.put(WEBEOC_BOARD, webeocLayerInfo.getBoard());
+        map.put(WEBEOC_VIEW, webeocLayerInfo.getView());
+        
+    // Save the layer and resource
+    catalog.save(layerInfo);
+  }
+
+
+  private DropDownChoice getStoresDropDown() {
+    DropDownChoice storesChoice = new DropDownChoice("storesDropDown", new Model(), 
+             new WebEOCStoreListModel(), new StoreListChoiceRenderer());
+    storesChoice.setOutputMarkupId(true);
+    storesChoice.setRequired(true);
 
     // Add an onChange action to the stores drop down that uses the legend
     // ajax updater to change the legend graphic on the page.
-    stores.add(new AjaxFormComponentUpdatingBehavior("onchange") {
+    storesChoice.add(new AjaxFormComponentUpdatingBehavior("onchange") {
       @Override
       protected void onUpdate(AjaxRequestTarget target) {
         StoreInfo storeInfo = (StoreInfo) stores.getModelObject();
@@ -105,22 +166,24 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
         }
       }
     });
-    
+    return storesChoice;
+  }
 
+  private DropDownChoice getIncidentsDropDown() {
     final IModel incidentChoiceModel = new AbstractReadOnlyModel() {
       public Object getObject() {
-        if (credentials == null || null == webEOC ) {
+        if (null == credentials || null == webEOC ) {
           return Collections.EMPTY_LIST;
         }
         return getIncidents();
       }
     };
-    incidents = new DropDownChoice("incidents", new PropertyModel(webeocLayerInfo, "incident"), incidentChoiceModel);
-    incidents.setOutputMarkupId(true);
-    incidents.setRequired(true);
-    form.add(incidents);
+    DropDownChoice incidentsChoice = new DropDownChoice("incidents", 
+            new PropertyModel(webeocLayerInfo, "incident"), incidentChoiceModel);
+    incidentsChoice.setOutputMarkupId(true);
+    incidentsChoice.setRequired(true);
     
-    incidents.add(new AjaxFormComponentUpdatingBehavior("onchange") {
+    incidentsChoice.add(new AjaxFormComponentUpdatingBehavior("onchange") {
       @Override
       protected void onUpdate(AjaxRequestTarget target) {
         credentials.setIncident(getDefaultModelObjectAsString());
@@ -130,8 +193,10 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
         }
       }
     });
+    return incidentsChoice;
+  }
 
-    
+  private DropDownChoice getBoardsDropDown() {
     final IModel boardChoiceModel = new AbstractReadOnlyModel() {
       public Object getObject() {
         if (credentials == null || null == webEOC ) {
@@ -140,12 +205,12 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
         return getBoards();
       }
     };
-    boards = new DropDownChoice("boards", new PropertyModel(webeocLayerInfo, "board"), boardChoiceModel);
-    boards.setOutputMarkupId(true);
-    boards.setRequired(true);
-    form.add(boards);
+    DropDownChoice boardsChoice = new DropDownChoice("boards", 
+            new PropertyModel(webeocLayerInfo, "board"), boardChoiceModel);
+    boardsChoice.setOutputMarkupId(true);
+    boardsChoice.setRequired(true);
     
-    boards.add(new AjaxFormComponentUpdatingBehavior("onchange") {
+    boardsChoice.add(new AjaxFormComponentUpdatingBehavior("onchange") {
       @Override
       protected void onUpdate(AjaxRequestTarget target) {
         if (target != null) {
@@ -153,8 +218,10 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
         }
       }
     });
+    return boardsChoice;
+  }
 
-    
+  private DropDownChoice getViewsDropDown() {   
     final IModel viewChoiceModel = new AbstractReadOnlyModel() {
       public Object getObject() {
         if (credentials == null || null == webEOC ) {
@@ -163,45 +230,22 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
         return getViews();
       }
     };
-    views = new DropDownChoice("views", new PropertyModel(webeocLayerInfo, "view"), viewChoiceModel);
-    views.setOutputMarkupId(true);
-    views.setRequired(true);
-    form.add(views);
-    
+    DropDownChoice viewsChoice = new DropDownChoice("views", 
+            new PropertyModel(webeocLayerInfo, "view"), viewChoiceModel);
+    viewsChoice.setOutputMarkupId(true);
+    viewsChoice.setRequired(true);
 
-    // create the title field
-    form.add(layerTitle = new TextField<String>("layerTitle", new Model<String>()));
-
-    // create the save and cancel buttons
-    form.add(new BookmarkablePageLink("cancel", GeoServerHomePage.class));
-    SubmitLink saveLink = new SubmitLink("save", form) {
+    viewsChoice.add(new AjaxFormComponentUpdatingBehavior("onchange") {
       @Override
-      public void onSubmit() {
-        submit();
+      protected void onUpdate(AjaxRequestTarget target) {
+        System.out.println(getViewFields());
       }
-    };
-    form.add(saveLink);
-    form.setDefaultButton(saveLink);
+    });
+    return viewsChoice;
   }
+  
 
-
-  private void submit() {
-    
-//        CatalogBuilder builder = new CatalogBuilder(getCatalog());
-//        builder.setStore((StoreInfo)stores.getDefaultModelObject());
-//
-//        // Build the geoserver feature type object
-//        FeatureTypeInfo fti = builder.buildFeatureType(getFeatureSource(ds, layerTitle.getDefaultModelObjectAsString()));
-//        // Set the bounding boxes to makes things happy
-//        ReferencedEnvelope world = new ReferencedEnvelope(-180, 180, -90, 90, WGS84);
-//        fti.setLatLonBoundingBox(world);
-//        fti.setNativeBoundingBox(world);
-//
-//        // Build the geoserver layer object
-//        LayerInfo layerInfo = builder.buildLayer(fti);
-  }
-
-
+  /*  WebEOC API calls  */
   private List<String> getIncidents() {
     return webEOC.getAPISoap().getIncidents(credentials).getString();
   }
@@ -212,6 +256,12 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
 
   private List<String> getViews() {
     return webEOC.getAPISoap().getDisplayViews(credentials, 
-            boards.getDefaultModelObjectAsString()).getString();
+            webeocLayerInfo.getBoard()).getString();
+  }
+
+  private List<String> getViewFields() {
+    return webEOC.getAPISoap().getViewFields(credentials, 
+            webeocLayerInfo.getBoard(),
+            webeocLayerInfo.getView()).getString();
   }
 }
