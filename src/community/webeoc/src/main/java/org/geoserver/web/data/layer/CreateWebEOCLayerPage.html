@@ -47,7 +47,13 @@
                   <label for="layerTitle"><wicket:message key="layerTitle">Layer Title</wicket:message></label>
                   <input wicket:id="layerTitle" type="text" class="text"/>
                 </li>
-                <li>Style</li>
+                <li>
+                  <label for="defaultStyle"><wicket:message key="defaultStyle">Default Style</wicket:message></label>
+                  <select id="defaultStyle" wicket:id="defaultStyle"></select>
+                </li>
+                <li>
+                  <img wicket:id="defaultStyleLegendGraphic"></img>
+                </li>
               </ul>
             </fieldset>
           </li>
@@ -70,10 +76,10 @@
         </div>
       </form>
     </div> 
-    
-  <wicket:fragment wicket:id="bindingFragment">
-    <select wicket:id="binding"></select>
-	</wicket:fragment>
+
+    <wicket:fragment wicket:id="bindingFragment">
+      <select wicket:id="binding"></select>
+    </wicket:fragment>
   </wicket:extend>
 </body>
 </html>

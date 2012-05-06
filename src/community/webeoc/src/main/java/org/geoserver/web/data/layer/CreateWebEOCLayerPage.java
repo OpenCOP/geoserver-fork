@@ -16,11 +16,13 @@ import java.util.logging.Logger;
 import org.apache.wicket.Component;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.form.AjaxFormComponentUpdatingBehavior;
+import org.apache.wicket.ajax.form.OnChangeAjaxBehavior;
 import org.apache.wicket.markup.html.basic.Label;
 import org.apache.wicket.markup.html.form.DropDownChoice;
 import org.apache.wicket.markup.html.form.Form;
 import org.apache.wicket.markup.html.form.SubmitLink;
 import org.apache.wicket.markup.html.form.TextField;
+import org.apache.wicket.markup.html.image.Image;
 import org.apache.wicket.markup.html.link.BookmarkablePageLink;
 import org.apache.wicket.markup.html.panel.Fragment;
 import org.apache.wicket.model.AbstractReadOnlyModel;
@@ -35,6 +37,7 @@ import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.MetadataMap;
 import org.geoserver.catalog.ProjectionPolicy;
 import org.geoserver.catalog.StoreInfo;
+import org.geoserver.catalog.StyleInfo;
 import org.geoserver.web.GeoServerHomePage;
 import org.geoserver.web.GeoServerSecuredPage;
 import org.geoserver.web.data.layer.AttributeEditPage.BindingChoiceRenderer;
@@ -48,6 +51,9 @@ import org.geoserver.web.wicket.GeoServerAjaxFormLink;
 import org.geoserver.web.wicket.GeoServerDataProvider.Property;
 import org.geoserver.web.wicket.GeoServerTablePanel;
 import org.geoserver.web.wicket.ParamResourceModel;
+import org.geoserver.wms.web.publish.LegendGraphicAjaxUpdaterPublic;
+import org.geoserver.wms.web.publish.StyleChoiceRenderer;
+import org.geoserver.wms.web.publish.StylesModel;
 import org.geotools.data.DataStore;
 import org.geotools.data.FeatureSource;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
@@ -79,6 +85,7 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
   private final DropDownChoice views;
   private final TextField<String> layerName;
   private final TextField<String> layerTitle;
+  private final Model<StyleInfo> defaultStyleModel;
   private final WebEOCCredentialsSerializedWrapper credentials;
   private final WebEOCLayerInfo webeocLayerInfo;
   AttributesProvider attributesProvider;
@@ -101,6 +108,10 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
     // create the title field
     form.add(layerName = new TextField<String>("layerName", new Model<String>()));
     form.add(layerTitle = new TextField<String>("layerTitle", new Model<String>()));
+
+    // Add the style picker elements
+    defaultStyleModel = new Model<StyleInfo>();
+    addStylePicker(form);
 
     form.add(new GeoServerAjaxFormLink("removeSelected", form) {
 
@@ -223,6 +234,10 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
       LayerInfo layerInfo = builder.buildLayer(fti);
       layerInfo.setName(layername);
       layerInfo.getResource().setTitle(layerTitle.getDefaultModelObjectAsString());
+      // Get the chosen style
+      StyleInfo styleInfo = defaultStyleModel.getObject();
+      // Set the default style for the layer
+      layerInfo.setDefaultStyle(styleInfo);
       // Put the WebEOC configs in the metadata for the feature type
       MetadataMap map = fti.getMetadata();
       map.put(WebEOCConstants.WEBEOC_INCIDENT_KEY, webeocLayerInfo.getIncident());
@@ -386,6 +401,36 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
     return viewsChoice;
   }
 
+  private void addStylePicker(Form form) {
+    // default styleXml chooser. A default styleXml is required
+    final DropDownChoice defaultStyle = new DropDownChoice("defaultStyle",
+            defaultStyleModel,
+            new StylesModel(), new StyleChoiceRenderer());
+    defaultStyle.setOutputMarkupId(true);
+    defaultStyle.setRequired(true);
+    form.add(defaultStyle);
+
+    // Add the Style's legend graphic to the page
+    final Image defStyleImg = new Image("defaultStyleLegendGraphic");
+    defStyleImg.setOutputMarkupId(true);
+    form.add(defStyleImg);
+
+    // Add a legend graphic ajax updater object
+    String wmsURL = getRequest().getRelativePathPrefixToContextRoot();
+    wmsURL += wmsURL.endsWith("/") ? "wms?" : "/wms?";
+    final LegendGraphicAjaxUpdaterPublic defaultStyleUpdater;
+    defaultStyleUpdater = new LegendGraphicAjaxUpdaterPublic(wmsURL, defStyleImg, defaultStyleModel);
+
+    // Add an onChange action to the styleXml drop down that uses the legend
+    // ajax updater to change the legend graphic on the page.
+    defaultStyle.add(new OnChangeAjaxBehavior() {
+
+      @Override
+      protected void onUpdate(AjaxRequestTarget target) {
+        defaultStyleUpdater.updateStyleImage(target);
+      }
+    });
+  }
 
   /*  WebEOC API calls  */
   private APISoap getWebEOC() {
