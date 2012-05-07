@@ -64,7 +64,14 @@
                 <li><a class="remove-link" href="#" wicket:id="removeSelected"><wicket:message key="removeSelected" /></a></li>               
                 <li>
                   <label for="attributes"><wicket:message key="attributes">atts</wicket:message></label>
-                  <div wicket:id="attributes"></div>
+                  
+            			<wicket:container wicket:id="lonRadioGroup">
+            			<wicket:container wicket:id="latRadioGroup">
+            			<wicket:container wicket:id="lastUpdatedRadioGroup">
+                    <div wicket:id="attributes"></div>
+                  </wicket:container>
+                  </wicket:container>
+                  </wicket:container>
                 </li>
               </ul>
             </fieldset>
@@ -79,6 +86,15 @@
 
     <wicket:fragment wicket:id="bindingFragment">
       <select wicket:id="binding"></select>
+    </wicket:fragment>
+    <wicket:fragment wicket:id="lonFieldFragment">
+      <input wicket:id="lonField" type="radio" />
+    </wicket:fragment>
+    <wicket:fragment wicket:id="latFieldFragment">
+      <input wicket:id="latField" type="radio" />
+    </wicket:fragment>
+    <wicket:fragment wicket:id="lastUpdatedFieldFragment">
+      <input wicket:id="lastUpdatedField" type="radio" />
     </wicket:fragment>
   </wicket:extend>
 </body>

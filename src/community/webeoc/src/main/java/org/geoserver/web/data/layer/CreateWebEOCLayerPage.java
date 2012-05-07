@@ -3,6 +3,7 @@ package org.geoserver.web.data.layer;
 import com.esi911.webeoc7.api._1.API;
 import com.esi911.webeoc7.api._1.APISoap;
 import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.Point;
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.MalformedURLException;
@@ -20,6 +21,8 @@ import org.apache.wicket.ajax.form.OnChangeAjaxBehavior;
 import org.apache.wicket.markup.html.basic.Label;
 import org.apache.wicket.markup.html.form.DropDownChoice;
 import org.apache.wicket.markup.html.form.Form;
+import org.apache.wicket.markup.html.form.Radio;
+import org.apache.wicket.markup.html.form.RadioGroup;
 import org.apache.wicket.markup.html.form.SubmitLink;
 import org.apache.wicket.markup.html.form.TextField;
 import org.apache.wicket.markup.html.image.Image;
@@ -88,7 +91,7 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
   private final Model<StyleInfo> defaultStyleModel;
   private final WebEOCCredentialsSerializedWrapper credentials;
   private final WebEOCLayerInfo webeocLayerInfo;
-  AttributesProvider attributesProvider;
+  WebEOCAttributesProvider attributesProvider;
   GeoServerTablePanel<AttributeDescription> attributeTable;
   private String wsdlUrl;
 
@@ -105,9 +108,15 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
     form.add(boards = getBoardsDropDown());
     form.add(views = getViewsDropDown());
 
-    // create the title field
+    // create the name field
     form.add(layerName = new TextField<String>("layerName", new Model<String>()));
+    layerName.setOutputMarkupId(true);
+    layerName.setRequired(true);
+    
+    // create the title field
     form.add(layerTitle = new TextField<String>("layerTitle", new Model<String>()));
+    layerTitle.setOutputMarkupId(true);
+    layerTitle.setRequired(true);
 
     // Add the style picker elements
     defaultStyleModel = new Model<StyleInfo>();
@@ -122,8 +131,12 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
         target.addComponent(form);
       }
     });
+    
+    final RadioGroup lonRadioGroup = new RadioGroup("lonRadioGroup", new PropertyModel(webeocLayerInfo, "lonField"));
+    final RadioGroup latRadioGroup = new RadioGroup("latRadioGroup", new PropertyModel(webeocLayerInfo, "latField"));
+    final RadioGroup lastUpdatedRadioGroup = new RadioGroup("lastUpdatedRadioGroup", new PropertyModel(webeocLayerInfo, "lastUpdatedField"));
 
-    attributesProvider = new AttributesProvider();
+    attributesProvider = new WebEOCAttributesProvider();
     attributeTable = new GeoServerTablePanel<AttributeDescription>("attributes",
             attributesProvider, true) {
 
@@ -131,37 +144,27 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
       protected Component getComponentForProperty(String id, IModel itemModel,
               Property<AttributeDescription> property) {
         AttributeDescription att = (AttributeDescription) itemModel.getObject();
-        if (property == AttributesProvider.NAME) {
+        if (property == WebEOCAttributesProvider.NAME) {
           return new Label(id, att.getName());
-        } else if (property == AttributesProvider.BINDING) {
+        } else if (property == WebEOCAttributesProvider.BINDING) {
           Fragment f = new Fragment(id, "bindingFragment", CreateWebEOCLayerPage.this);
           DropDownChoice choice = new DropDownChoice("binding", new PropertyModel(itemModel, "binding"),
-                  AttributeDescription.BINDINGS, new BindingChoiceRenderer());
+                  WebEOCAttributesProvider.BINDINGS, new BindingChoiceRenderer());
           choice.setOutputMarkupId(true);
           f.add(choice);
           return f;
-//          return new Label(id, AttributeDescription.getLocalizedName(att.getBinding()));
-        } else if (property == AttributesProvider.CRS) {
-          if (att.getBinding() != null
-                  && Geometry.class.isAssignableFrom(att.getBinding())) {
-            try {
-              Integer epsgCode = CRS.lookupEpsgCode(att.getCrs(), false);
-              return new Label(id, "EPSG:" + epsgCode);
-            } catch (Exception e) {
-              throw new RuntimeException(e);
-            }
-          } else {
-            return new Label(id, "");
-          }
-        } else if (property == AttributesProvider.SIZE) {
-          if (att.getBinding() != null && String.class.equals(att.getBinding())) {
-            return new Label(id, String.valueOf(att.getSize()));
-          } else {
-            return new Label(id, "");
-          }
-        } else if (property == AttributesProvider.UPDOWN) {
-          return new Label(id, "");
-//          return upDownFragment(id, att);
+        } else if (property == WebEOCAttributesProvider.LON) {
+          Fragment f = new Fragment(id, "lonFieldFragment", CreateWebEOCLayerPage.this);
+          f.add(new Radio("lonField", new PropertyModel(itemModel, "name"), lonRadioGroup));
+          return f;
+        } else if (property == WebEOCAttributesProvider.LAT) {
+          Fragment f = new Fragment(id, "latFieldFragment", CreateWebEOCLayerPage.this);
+          f.add(new Radio("latField", new PropertyModel(itemModel, "name"), latRadioGroup));
+          return f;
+        } else if (property == WebEOCAttributesProvider.LAST_UPDATED) {
+          Fragment f = new Fragment(id, "lastUpdatedFieldFragment", CreateWebEOCLayerPage.this);
+          f.add(new Radio("lastUpdatedField", new PropertyModel(itemModel, "name"), lastUpdatedRadioGroup));
+          return f;
         }
 
         return null;
@@ -171,7 +174,11 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
     attributeTable.setSortable(false);
     attributeTable.setFilterable(false);
     attributeTable.getBottomPager().setVisible(false);
-    form.add(attributeTable);
+    
+    lastUpdatedRadioGroup.add(attributeTable);
+    latRadioGroup.add(lastUpdatedRadioGroup);
+    lonRadioGroup.add(latRadioGroup);
+    form.add(lonRadioGroup);
 
     // create the save and cancel buttons
     form.add(new BookmarkablePageLink("cancel", GeoServerHomePage.class));
@@ -208,7 +215,23 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
     }
 
     // Convert the fields to a SimpleFeatureType
-    SimpleFeatureType featureType = buildFeatureType(attributesProvider.getAttributes(), layername);
+    SimpleFeatureType featureType = null;
+    String lonField = webeocLayerInfo.getLonField();
+    String latField = webeocLayerInfo.getLatField();
+    // check to see if lon/lat are defined
+    if (null != lonField && !lonField.trim().isEmpty() && 
+        null != latField && !latField.trim().isEmpty()) {
+      // create the geom attribute
+      AttributeDescription geom = new AttributeDescription();
+      geom.setBinding(Point.class);
+      geom.setName(WebEOCConstants.WEBEOC_DEFAULT_GEOM_NAME);
+      List<AttributeDescription> attrs = attributesProvider.getAttributes();
+      attrs.add(geom);
+      featureType = buildFeatureType(attrs, layername);
+    } else {
+      featureType = buildFeatureType(attributesProvider.getAttributes(), layername);
+    }
+      
     try {
       // Persist the SimpleFeatureType to the datastore
       ds.createSchema(featureType);
@@ -243,6 +266,9 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
       map.put(WebEOCConstants.WEBEOC_INCIDENT_KEY, webeocLayerInfo.getIncident());
       map.put(WebEOCConstants.WEBEOC_BOARD_KEY, webeocLayerInfo.getBoard());
       map.put(WebEOCConstants.WEBEOC_VIEW_KEY, webeocLayerInfo.getView());
+      map.put(WebEOCConstants.WEBEOC_LONFIELD_KEY, webeocLayerInfo.getLonField());
+      map.put(WebEOCConstants.WEBEOC_LATFIELD_KEY, webeocLayerInfo.getLatField());
+      map.put(WebEOCConstants.WEBEOC_LASTUPDATEDFIELD_KEY, webeocLayerInfo.getLastUpdatedField());
 
       // Save the layer and resource
       catalog.add(fti);
@@ -271,8 +297,11 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
   SimpleFeatureType buildFeatureType(List<AttributeDescription> attributes, String name) {
     SimpleFeatureTypeBuilder builder = new SimpleFeatureTypeBuilder();
     for (AttributeDescription attribute : attributes) {
-      // TODO: Make the bindings selectable
-      builder.add(attribute.getName(), attribute.getBinding());
+      if (Geometry.class.isAssignableFrom(attribute.getBinding())) {
+        builder.add(attribute.getName(), attribute.getBinding(), attribute.getCrs());
+      } else {
+        builder.add(attribute.getName(), attribute.getBinding());
+      }
     }
     builder.setName(name);
     return builder.buildFeatureType();
@@ -381,7 +410,6 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
 
       @Override
       protected void onUpdate(AjaxRequestTarget target) {
-//        System.out.println(getViewFields());
         // Create the column datatype editor
         List<String> fields = getViewFields();
         attributesProvider.removeAll(attributesProvider.getAttributes());
@@ -389,12 +417,17 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
         for (String field : fields) {
           AttributeDescription attr = new AttributeDescription();
           attr.setName(field);
-          attr.setBinding(String.class);
           attributesProvider.addNewAttribute(attr);
         }
         attributeTable.setItemsPerPage(attributesProvider.size());
+
+        ((Model)layerName.getDefaultModel()).setObject(getDefaultLayerName());
+        ((Model)layerTitle.getDefaultModel()).setObject(getDefaultLayerTitle());
+        
         if (target != null) {
           target.addComponent(attributeTable);
+          target.addComponent(layerName);
+          target.addComponent(layerTitle);
         }
       }
     });
@@ -430,6 +463,29 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
         defaultStyleUpdater.updateStyleImage(target);
       }
     });
+  }
+
+  private String getDefaultLayerName() {
+    StringBuilder name = new StringBuilder();
+    name.append(webeocLayerInfo.getIncident()).append("_");
+    name.append(webeocLayerInfo.getBoard()).append("_");
+    name.append(webeocLayerInfo.getView());
+    return fix(name.toString());
+  }
+
+  private String fix(String name) {
+    return name.replaceAll("[^A-Za-z0-9_\\s+]", "")
+               .replaceAll("\\s+", "_")
+               .toLowerCase()
+               .substring(0, WebEOCConstants.TABLE_NAME_MAXLENGTH - 1);
+  }
+
+  private String getDefaultLayerTitle() {
+    StringBuilder name = new StringBuilder();
+    name.append(webeocLayerInfo.getIncident()).append(" ");
+    name.append(webeocLayerInfo.getBoard()).append(" ");
+    name.append(webeocLayerInfo.getView());
+    return name.toString();
   }
 
   /*  WebEOC API calls  */

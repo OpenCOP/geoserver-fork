@@ -51,5 +51,35 @@ public interface WebEOCLayerInfo extends Serializable {
    * @param view the view to set
    */
   void setView(String view);
+
+  /**
+   * @return the lastUpdatedField
+   */
+  String getLastUpdatedField();
+
+  /**
+   * @return the latField
+   */
+  String getLatField();
+
+  /**
+   * @return the lonField
+   */
+  String getLonField();
+
+  /**
+   * @param lastUpdatedField the lastUpdatedField to set
+   */
+  void setLastUpdatedField(String lastUpdatedField);
+
+  /**
+   * @param latField the latField to set
+   */
+  void setLatField(String latField);
+
+  /**
+   * @param lonField the lonField to set
+   */
+  void setLonField(String lonField);
   
 }

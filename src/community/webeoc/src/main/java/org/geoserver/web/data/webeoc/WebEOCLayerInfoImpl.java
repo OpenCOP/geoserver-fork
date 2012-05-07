@@ -10,6 +10,10 @@ public class WebEOCLayerInfoImpl implements WebEOCLayerInfo {
   private String view;
   private boolean pollingActive;
 
+  private String lonField;
+  private String latField;
+  private String lastUpdatedField;
+
   /**
    * @return the incident
    */
@@ -72,6 +76,48 @@ public class WebEOCLayerInfoImpl implements WebEOCLayerInfo {
   @Override
   public void setPollingActive(boolean pollingActive) {
     this.pollingActive = pollingActive;
+  }
+
+  /**
+   * @return the lonField
+   */
+  public String getLonField() {
+    return lonField;
+  }
+
+  /**
+   * @param lonField the lonField to set
+   */
+  public void setLonField(String lonField) {
+    this.lonField = lonField;
+  }
+
+  /**
+   * @return the latField
+   */
+  public String getLatField() {
+    return latField;
+  }
+
+  /**
+   * @param latField the latField to set
+   */
+  public void setLatField(String latField) {
+    this.latField = latField;
+  }
+
+  /**
+   * @return the lastUpdatedField
+   */
+  public String getLastUpdatedField() {
+    return lastUpdatedField;
+  }
+
+  /**
+   * @param lastUpdatedField the lastUpdatedField to set
+   */
+  public void setLastUpdatedField(String lastUpdatedField) {
+    this.lastUpdatedField = lastUpdatedField;
   }
   
 }
