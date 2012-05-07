@@ -1,0 +1,85 @@
+<html xmlns:wicket="http://wicket.apache.org/">
+  <body>
+  <wicket:extend>
+
+    <div> 
+      <form wicket:id="form">
+        <ul>          
+          <li>
+
+            <fieldset>
+              <ul>
+                <li>
+                  <label for="storesDropDown"><wicket:message key="storesDropDown">Datastore</wicket:message></label>
+                  <select wicket:id="storesDropDown"></select>
+                </li>
+              </ul>
+            </fieldset>
+          </li>
+          <li>
+            <fieldset>
+              <legend><span>WebEOC Info</span></legend>
+              <ul>
+                <li>
+                  <label for="incidents"><wicket:message key="incident">Select Incident</wicket:message></label>
+                  <select wicket:id="incidents"></select>
+                </li>
+                <li>
+                  <label for="boards"><wicket:message key="board">Select Board</wicket:message></label>
+                  <select wicket:id="boards"></select>
+                </li>
+                <li>
+                  <label for="views"><wicket:message key="view">Select View</wicket:message></label>
+                  <select wicket:id="views"></select>
+                </li>
+              </ul>
+            </fieldset>
+          </li>
+          <li>
+            <fieldset>
+              <legend><span>Layer Info</span></legend>
+              <ul>   
+                <li>
+                  <label for="layerName"><wicket:message key="layerName">Layer Name</wicket:message></label>
+                  <input wicket:id="layerName" type="text" class="text"/>
+                </li>
+                <li>
+                  <label for="layerTitle"><wicket:message key="layerTitle">Layer Title</wicket:message></label>
+                  <input wicket:id="layerTitle" type="text" class="text"/>
+                </li>
+                <li>
+                  <label for="defaultStyle"><wicket:message key="defaultStyle">Default Style</wicket:message></label>
+                  <select id="defaultStyle" wicket:id="defaultStyle"></select>
+                </li>
+                <li>
+                  <img wicket:id="defaultStyleLegendGraphic"></img>
+                </li>
+              </ul>
+            </fieldset>
+          </li>
+          <li>
+            <fieldset>
+              <legend><span>Schema Info</span></legend>
+              <ul>   
+                <li><a class="remove-link" href="#" wicket:id="removeSelected"><wicket:message key="removeSelected" /></a></li>               
+                <li>
+                  <label for="attributes"><wicket:message key="attributes">atts</wicket:message></label>
+                  <div wicket:id="attributes"></div>
+                </li>
+              </ul>
+            </fieldset>
+          </li>
+        </ul>
+        <div class="button-group selfclear">
+          <a href="#" wicket:id="save"><wicket:message key="save">Save</wicket:message></a>
+          <a href="#" wicket:id="cancel"><wicket:message key="cancel">Cancel</wicket:message></a>
+        </div>
+      </form>
+    </div> 
+
+    <wicket:fragment wicket:id="bindingFragment">
+      <select wicket:id="binding"></select>
+    </wicket:fragment>
+  </wicket:extend>
+</body>
+</html>

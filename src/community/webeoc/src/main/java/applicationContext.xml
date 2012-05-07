@@ -12,7 +12,7 @@
     <property name="id" value="createWebEOCLayerPage"/>
     <property name="titleKey" value="CreateWebEOCLayerPage.title"/>
     <property name="descriptionKey" value="CreateWebEOCLayerPage.description"/>
-    <property name="componentClass" value="org.geoserver.web.data.webeoc.CreateWebEOCLayerPage"/>
+    <property name="componentClass" value="org.geoserver.web.data.layer.CreateWebEOCLayerPage"/>
     <property name="category" ref="webeocCategory"/>
     <property name="order" value="10"/>
   </bean>
