@@ -41,7 +41,8 @@
               <ul>   
                 <li>
                   <label for="layerName"><wicket:message key="layerName">Layer Name</wicket:message></label>
-                  <input wicket:id="layerName" type="text" class="text"/>
+                  <!-- magic number warning. couldn't figure out the wicket 1.4 way to set maxlength. -->
+                  <input wicket:id="layerName" type="text" class="text" maxlength="63"/>
                 </li>
                 <li>
                   <label for="layerTitle"><wicket:message key="layerTitle">Layer Title</wicket:message></label>

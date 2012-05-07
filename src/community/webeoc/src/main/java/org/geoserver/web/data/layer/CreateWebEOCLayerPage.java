@@ -32,6 +32,7 @@ import org.apache.wicket.model.AbstractReadOnlyModel;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.Model;
 import org.apache.wicket.model.PropertyModel;
+import org.apache.wicket.validation.validator.StringValidator;
 import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.CatalogBuilder;
 import org.geoserver.catalog.DataStoreInfo;
@@ -110,6 +111,7 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
 
     // create the name field
     form.add(layerName = new TextField<String>("layerName", new Model<String>()));
+    layerName.add(StringValidator.maximumLength(WebEOCConstants.TABLE_NAME_MAXLENGTH));
     layerName.setOutputMarkupId(true);
     layerName.setRequired(true);
     
@@ -122,6 +124,7 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
     defaultStyleModel = new Model<StyleInfo>();
     addStylePicker(form);
 
+    // Add the remove selected attributes link
     form.add(new GeoServerAjaxFormLink("removeSelected", form) {
 
       @Override
@@ -132,10 +135,12 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
       }
     });
     
+    // Create the radio button groups
     final RadioGroup lonRadioGroup = new RadioGroup("lonRadioGroup", new PropertyModel(webeocLayerInfo, "lonField"));
     final RadioGroup latRadioGroup = new RadioGroup("latRadioGroup", new PropertyModel(webeocLayerInfo, "latField"));
     final RadioGroup lastUpdatedRadioGroup = new RadioGroup("lastUpdatedRadioGroup", new PropertyModel(webeocLayerInfo, "lastUpdatedField"));
 
+    // Create the schema table
     attributesProvider = new WebEOCAttributesProvider();
     attributeTable = new GeoServerTablePanel<AttributeDescription>("attributes",
             attributesProvider, true) {
@@ -175,6 +180,7 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
     attributeTable.setFilterable(false);
     attributeTable.getBottomPager().setVisible(false);
     
+    // Add the table and radiogroups to the form
     lastUpdatedRadioGroup.add(attributeTable);
     latRadioGroup.add(lastUpdatedRadioGroup);
     lonRadioGroup.add(latRadioGroup);
@@ -261,14 +267,11 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
       StyleInfo styleInfo = defaultStyleModel.getObject();
       // Set the default style for the layer
       layerInfo.setDefaultStyle(styleInfo);
+      // Set pollingActive to true by default
+      webeocLayerInfo.setPollingActive(true);
       // Put the WebEOC configs in the metadata for the feature type
       MetadataMap map = fti.getMetadata();
-      map.put(WebEOCConstants.WEBEOC_INCIDENT_KEY, webeocLayerInfo.getIncident());
-      map.put(WebEOCConstants.WEBEOC_BOARD_KEY, webeocLayerInfo.getBoard());
-      map.put(WebEOCConstants.WEBEOC_VIEW_KEY, webeocLayerInfo.getView());
-      map.put(WebEOCConstants.WEBEOC_LONFIELD_KEY, webeocLayerInfo.getLonField());
-      map.put(WebEOCConstants.WEBEOC_LATFIELD_KEY, webeocLayerInfo.getLatField());
-      map.put(WebEOCConstants.WEBEOC_LASTUPDATEDFIELD_KEY, webeocLayerInfo.getLastUpdatedField());
+      map.putAll(webeocLayerInfo.getAsMap());
 
       // Save the layer and resource
       catalog.add(fti);
@@ -313,18 +316,18 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
     storesChoice.setOutputMarkupId(true);
     storesChoice.setRequired(true);
 
-    // Add an onChange action to the stores drop down that uses the legend
-    // ajax updater to change the legend graphic on the page.
     storesChoice.add(new AjaxFormComponentUpdatingBehavior("onchange") {
 
       @Override
       protected void onUpdate(AjaxRequestTarget target) {
         StoreInfo storeInfo = (StoreInfo) stores.getModelObject();
         Map<String, Serializable> connectionParameters = storeInfo.getConnectionParameters();
+        // Get the WebEOC credentials from the datastore object
         credentials.setUsername(connectionParameters.get(WebEOCConstants.WEBEOC_USER_KEY).toString());
         credentials.setPassword(connectionParameters.get(WebEOCConstants.WEBEOC_PASSWORD_KEY).toString());
         credentials.setPosition(connectionParameters.get(WebEOCConstants.WEBEOC_POSITION_KEY).toString());
 
+        // Get the WebEOC WSDL endpoint from the datastore object
         wsdlUrl = connectionParameters.get(WebEOCConstants.WEBEOC_WSDL_KEY).toString();
 
         if (target != null) {
@@ -466,22 +469,29 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
   }
 
   private String getDefaultLayerName() {
+    // Concate the webeoc names together
     StringBuilder name = new StringBuilder();
     name.append(webeocLayerInfo.getIncident()).append("_");
     name.append(webeocLayerInfo.getBoard()).append("_");
     name.append(webeocLayerInfo.getView());
-    return fix(name.toString());
-  }
-
-  private String fix(String name) {
-    return name.replaceAll("[^A-Za-z0-9_\\s+]", "")
-               .replaceAll("\\s+", "_")
-               .toLowerCase()
-               .substring(0, WebEOCConstants.TABLE_NAME_MAXLENGTH - 1);
+    
+    String nameString = name.toString()
+            .replaceAll("[^A-Za-z0-9_\\s+]", "") // remove all weird characters
+            .replaceAll("\\s+", "_") // change whitespace to underscore
+            .toLowerCase();
+    
+    // Apparently there is a max length to table names
+    // Truncate if its too long
+    if (nameString.length() > WebEOCConstants.TABLE_NAME_MAXLENGTH) {
+      return nameString.substring(0, WebEOCConstants.TABLE_NAME_MAXLENGTH);
+    }
+    
+    return nameString;
   }
 
   private String getDefaultLayerTitle() {
     StringBuilder name = new StringBuilder();
+    // Concate the webeoc names together
     name.append(webeocLayerInfo.getIncident()).append(" ");
     name.append(webeocLayerInfo.getBoard()).append(" ");
     name.append(webeocLayerInfo.getView());

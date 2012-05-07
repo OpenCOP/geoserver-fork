@@ -5,6 +5,7 @@
 package org.geoserver.web.data.webeoc;
 
 import java.io.Serializable;
+import java.util.Map;
 
 /**
  *
@@ -81,5 +82,7 @@ public interface WebEOCLayerInfo extends Serializable {
    * @param lonField the lonField to set
    */
   void setLonField(String lonField);
+
+  Map<String, String> getAsMap();
   
 }

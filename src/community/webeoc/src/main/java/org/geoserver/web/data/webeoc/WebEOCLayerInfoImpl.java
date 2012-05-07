@@ -1,5 +1,8 @@
 package org.geoserver.web.data.webeoc;
 
+import java.util.Map;
+import java.util.TreeMap;
+
 /**
  *
  * @author yancy
@@ -13,6 +16,18 @@ public class WebEOCLayerInfoImpl implements WebEOCLayerInfo {
   private String lonField;
   private String latField;
   private String lastUpdatedField;
+
+  public Map<String, String> getAsMap() {
+    TreeMap<String, String> map = new TreeMap<String, String>();
+    map.put(WebEOCConstants.WEBEOC_INCIDENT_KEY, incident);
+    map.put(WebEOCConstants.WEBEOC_BOARD_KEY, board);
+    map.put(WebEOCConstants.WEBEOC_VIEW_KEY, view);
+    map.put(WebEOCConstants.WEBEOC_POLLINGACTIVE_KEY, String.valueOf(pollingActive));
+    map.put(WebEOCConstants.WEBEOC_LONFIELD_KEY, lonField);
+    map.put(WebEOCConstants.WEBEOC_LATFIELD_KEY, latField);
+    map.put(WebEOCConstants.WEBEOC_LASTUPDATEDFIELD_KEY, lastUpdatedField);
+    return map;
+  }
 
   /**
    * @return the incident
@@ -119,5 +134,4 @@ public class WebEOCLayerInfoImpl implements WebEOCLayerInfo {
   public void setLastUpdatedField(String lastUpdatedField) {
     this.lastUpdatedField = lastUpdatedField;
   }
-  
 }
