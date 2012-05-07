@@ -1,0 +1,23 @@
+<projectDescription>
+  <name>web-gwc</name>
+  <comment/>
+  <projects>
+    <project>gwc</project>
+    <project>main</project>
+    <project>ows</project>
+    <project>platform</project>
+    <project>wfs</project>
+    <project>wms</project>
+    <project>wcs</project>
+    <project>web-core</project>
+  </projects>
+  <buildSpec>
+    <buildCommand>
+      <name>org.eclipse.jdt.core.javabuilder</name>
+    </buildCommand>
+  </buildSpec>
+  <natures>
+    <nature>org.eclipse.jdt.core.javanature</nature>
+    <nature>org.springframework.ide.eclipse.core.springnature</nature>
+  </natures>
+</projectDescription>

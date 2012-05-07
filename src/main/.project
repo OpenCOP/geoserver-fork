@@ -1,0 +1,17 @@
+<projectDescription>
+  <name>main</name>
+  <comment/>
+  <projects>
+    <project>ows</project>
+    <project>platform</project>
+  </projects>
+  <buildSpec>
+    <buildCommand>
+      <name>org.eclipse.jdt.core.javabuilder</name>
+    </buildCommand>
+  </buildSpec>
+  <natures>
+    <nature>org.eclipse.jdt.core.javanature</nature>
+    <nature>org.springframework.ide.eclipse.core.springnature</nature>
+  </natures>
+</projectDescription>

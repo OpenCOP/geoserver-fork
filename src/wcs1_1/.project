@@ -1,0 +1,19 @@
+<projectDescription>
+  <name>wcs1_1</name>
+  <comment/>
+  <projects>
+    <project>main</project>
+    <project>ows</project>
+    <project>platform</project>
+    <project>wcs</project>
+  </projects>
+  <buildSpec>
+    <buildCommand>
+      <name>org.eclipse.jdt.core.javabuilder</name>
+    </buildCommand>
+  </buildSpec>
+  <natures>
+    <nature>org.eclipse.jdt.core.javanature</nature>
+    <nature>org.springframework.ide.eclipse.core.springnature</nature>
+  </natures>
+</projectDescription>
