@@ -1,13 +1,12 @@
 package org.geoserver.web.data.resource;
 
 import org.apache.wicket.markup.html.WebMarkupContainer;
+import org.apache.wicket.markup.html.form.CheckBox;
 import org.apache.wicket.markup.html.form.TextField;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.PropertyModel;
-import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.ResourceInfo;
-import org.geoserver.web.GeoServerApplication;
 import org.geoserver.web.data.webeoc.WebEOCConstants;
 import org.geoserver.web.util.MapModel;
 import org.geotools.data.webeoc.WebEOCDataStoreFactory;
@@ -72,5 +71,8 @@ public class WebEOCTabPanel extends LayerEditTabPanel {
     webeocContainer.add(lastUpdated);
 
     
+    CheckBox pollingEnabled = new CheckBox("pollingEnabled", 
+            new MapModel(metadata, WebEOCConstants.WEBEOC_POLLING_ENABLED_KEY));
+    webeocContainer.add(pollingEnabled);
   }
 }

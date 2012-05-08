@@ -11,7 +11,7 @@ public class WebEOCLayerInfoImpl implements WebEOCLayerInfo {
   private String incident;
   private String board;
   private String view;
-  private boolean pollingActive;
+  private boolean pollingEnabled;
 
   private String lonField;
   private String latField;
@@ -22,7 +22,7 @@ public class WebEOCLayerInfoImpl implements WebEOCLayerInfo {
     map.put(WebEOCConstants.WEBEOC_INCIDENT_KEY, incident);
     map.put(WebEOCConstants.WEBEOC_BOARD_KEY, board);
     map.put(WebEOCConstants.WEBEOC_VIEW_KEY, view);
-    map.put(WebEOCConstants.WEBEOC_POLLINGACTIVE_KEY, String.valueOf(pollingActive));
+    map.put(WebEOCConstants.WEBEOC_POLLING_ENABLED_KEY, String.valueOf(pollingEnabled));
     map.put(WebEOCConstants.WEBEOC_LONFIELD_KEY, lonField);
     map.put(WebEOCConstants.WEBEOC_LATFIELD_KEY, latField);
     map.put(WebEOCConstants.WEBEOC_LASTUPDATEDFIELD_KEY, lastUpdatedField);
@@ -78,19 +78,19 @@ public class WebEOCLayerInfoImpl implements WebEOCLayerInfo {
   }
 
   /**
-   * @return the pollingActive
+   * @return the pollingEnabled
    */
   @Override
-  public boolean isPollingActive() {
-    return pollingActive;
+  public boolean isPollingEnabled() {
+    return pollingEnabled;
   }
 
   /**
-   * @param pollingActive the pollingActive to set
+   * @param pollingEnabled the pollingEnabled to set
    */
   @Override
-  public void setPollingActive(boolean pollingActive) {
-    this.pollingActive = pollingActive;
+  public void setPollingEnabled(boolean pollingEnabled) {
+    this.pollingEnabled = pollingEnabled;
   }
 
   /**

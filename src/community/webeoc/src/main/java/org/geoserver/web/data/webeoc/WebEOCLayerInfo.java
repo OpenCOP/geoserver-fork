@@ -29,9 +29,9 @@ public interface WebEOCLayerInfo extends Serializable {
   String getView();
 
   /**
-   * @return the pollingActive
+   * @return the pollingEnabled
    */
-  boolean isPollingActive();
+  boolean isPollingEnabled();
 
   /**
    * @param board the board to set
@@ -44,9 +44,9 @@ public interface WebEOCLayerInfo extends Serializable {
   void setIncident(String incident);
 
   /**
-   * @param pollingActive the pollingActive to set
+   * @param pollingEnabled the pollingEnabled to set
    */
-  void setPollingActive(boolean pollingActive);
+  void setPollingEnabled(boolean pollingEnabled);
 
   /**
    * @param view the view to set

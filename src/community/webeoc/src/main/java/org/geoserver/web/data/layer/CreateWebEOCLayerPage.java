@@ -267,8 +267,8 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
       StyleInfo styleInfo = defaultStyleModel.getObject();
       // Set the default style for the layer
       layerInfo.setDefaultStyle(styleInfo);
-      // Set pollingActive to true by default
-      webeocLayerInfo.setPollingActive(true);
+      // Set pollingEnabled to true by default
+      webeocLayerInfo.setPollingEnabled(true);
       // Put the WebEOC configs in the metadata for the feature type
       MetadataMap map = fti.getMetadata();
       map.putAll(webeocLayerInfo.getAsMap());

@@ -19,7 +19,7 @@ public class WebEOCConstants {
   public static final String WEBEOC_INCIDENT_KEY = "webeoc.incident";
   public static final String WEBEOC_BOARD_KEY = "webeoc.board";
   public static final String WEBEOC_VIEW_KEY = "webeoc.view";
-  public static final String WEBEOC_POLLINGACTIVE_KEY = "webeoc.pollingActive";
+  public static final String WEBEOC_POLLING_ENABLED_KEY = "webeoc.pollingEnabled";
   public static final String WEBEOC_LONFIELD_KEY = "webeoc.lonField";
   public static final String WEBEOC_LATFIELD_KEY = "webeoc.latField";
   public static final String WEBEOC_LASTUPDATEDFIELD_KEY = "webeoc.lastUpdatedField";

@@ -13,7 +13,7 @@
         <li>
           <fieldset>
             <legend>
-              <span>Layer Info</span>
+              <span><wicket:message key="layerInfoTitle">Layer Info</wicket:message></span>
             </legend>
             <ul>
               <li>
@@ -46,11 +46,14 @@
         <li>
           <fieldset>
             <legend>
-              <span>Actions</span>
+              <span><wicket:message key="pollingInfoTitle">Polling Info</wicket:message></span>
             </legend>
             <ul>
+              <li>
+                <input class="field checkbox" type="checkbox" wicket:id="pollingEnabled"></input>
+                <label for="pollingEnabled" class="choice"><wicket:message key="pollingEnabled">Polling Enabled</wicket:message></label>
+              </li>
               <li>governor button</li>
-              <li>actively polling</li>
               <li>polling interval (editable)</li>
             </ul>
           </fieldset>
