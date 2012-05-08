@@ -1,8 +1,9 @@
-package org.geoserver.webeoc.poller;
+package org.geoserver.web.webeoc.poller;
 
 import org.apache.wicket.markup.html.form.Form;
 import org.apache.wicket.markup.html.form.SubmitLink;
 import org.geoserver.web.GeoServerSecuredPage;
+import org.geoserver.webeoc.poller.Poller;
 
 public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 
