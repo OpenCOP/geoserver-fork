@@ -13,10 +13,7 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 
 	public ManageWebEocPollerPage() {
 
-		final Poller poller = Poller.getInstance();
-		final boolean isRunning = poller.isRunning();
-
-		if (isRunning) {
+		if (Poller.getInstance().isRunning()) {
 			add(new Label("msg", "Is running"));
 		} else {
 			add(new Label("msg", "Isn't running"));
@@ -26,13 +23,17 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 
 			@Override
 			protected void onSubmit() {
-				if (isRunning) {
+				Poller poller = Poller.getInstance();
+				if (poller.isRunning()) {
 					System.out.println("Stop this!");
 					poller.stop();
 				} else {
 					System.out.println("Start this!");
 					poller.start(DEV_defaultInterval);
-				}
+				} 
+				
+				// if you don't do this, the page won't refresh right
+				setResponsePage(new ManageWebEocPollerPage());
 			}
 		});
 

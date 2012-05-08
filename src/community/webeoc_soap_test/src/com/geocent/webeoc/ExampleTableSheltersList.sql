@@ -1,3 +1,6 @@
+-- Table: "Shelters_List"
+
+-- DROP TABLE "Shelters_List";
 
 CREATE TABLE "Shelters_List"
 (
@@ -26,7 +29,8 @@ CREATE TABLE "Shelters_List"
   label text,
   latitude double precision,
   longitude double precision,
-  subscribername text
+  subscribername text,
+  the_geom geometry
 )
 WITH (
   OIDS=FALSE

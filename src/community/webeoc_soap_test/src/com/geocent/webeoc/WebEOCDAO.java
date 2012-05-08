@@ -11,7 +11,8 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
-
+import org.postgis.Geometry;
+import org.postgis.PGgeometry;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
@@ -21,14 +22,29 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 public class WebEOCDAO {
-    protected static Connection conn;
+    /*
+     * TODO: The following varibles are only hard coded to enable easier developement, in the future these will all be obtained from the Geoserver datatype,
+     * possibly passed into the contructor
+     */
     private static final String CONNECTION_STRING = "jdbc:postgresql://localhost:5432/WebEOCTest";
     private static final String DB_USERNAME = "postgres";
     private static final String DB_PASSWORD = "postgres";
-    private static final HashMap<String, Integer> dataTypeMap = new HashMap<String, Integer>();
+    private static final String LATITUDE_COLUMN = "latitude";
+    private static final String LONGITUDE_COLUMN = "longitude";
+    /* END HARDCODED LIST */
 
+    protected static Connection conn;
+
+    private int geomColumnIndex = -1; /* Default values if we don't have a geometry information in this table, this should not happen */
+    private int latColumnIndex = -1;
+    private int lonColumnIndex = -1;
+
+    /* Keeps a map of 'data type' (returned from postgres db table metadata) -> java.sql.Types integer */
+    private static final HashMap<String, Integer> dataTypeMap = new HashMap<String, Integer>();
     private String tableName;
     private String webEOCXMLResponse;
+
+    /* Keeps a map of 'column name' -> 'data type' */
     private HashMap<String, String> columnTypeMap = new HashMap<String, String>();
     private String[] columnOrder;
 
@@ -60,7 +76,7 @@ public class WebEOCDAO {
         this.webEOCXMLResponse = webEOCXMLResponse;
         this.columnOrder = new String[getNumColumns()];
         initTableDataInfo();
-
+        setGeomColumnIndicies();
     }
 
     private int getNumColumns() throws Exception {
@@ -72,6 +88,34 @@ public class WebEOCDAO {
         } else {
             throw new Exception(String.format("ERROR: Table %s NOT FOUND", tableName));
         }
+    }
+
+    private void setGeomColumnIndicies() {
+        this.geomColumnIndex = -1;
+        this.latColumnIndex = -1;
+        /* Figure out where the geometry column is */
+        for (String key : columnTypeMap.keySet()) {
+            System.out.println("Checking key " + key + " its value is " + columnTypeMap.get(key));
+            if (columnTypeMap.get(key).equals("USER-DEFINED")) {
+                String locationColumnName = key;
+                for (int i = 0; i < columnOrder.length; i++) {
+                    if (columnOrder[i].equals(locationColumnName)) {
+                        geomColumnIndex = i;
+                        break;
+                    }
+                }
+            }
+            if (geomColumnIndex != -1)
+                break;
+        }
+        /* Figure out where the latitude and longitude information is */
+        for (int i = 0; i < columnOrder.length; i++) {
+            if (columnOrder[i].equals(LATITUDE_COLUMN))
+                this.latColumnIndex = i;
+            if (columnOrder[i].equals(LONGITUDE_COLUMN))
+                this.lonColumnIndex = i;
+        }
+        return;
     }
 
     private void initTableDataInfo() throws Exception {
@@ -96,7 +140,6 @@ public class WebEOCDAO {
     }
 
     public void insertIntoEOCTable() throws Exception {
-
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         DocumentBuilder db = dbf.newDocumentBuilder();
         Document dom = db.parse(new ByteArrayInputStream(webEOCXMLResponse.getBytes()));
@@ -115,8 +158,20 @@ public class WebEOCDAO {
                 valArray[j] = val.isEmpty() ? null : val;
             }
 
+            /* TODO: TEST LINES, THROW OUT WHEN DONE WITH TEXT */
+            valArray[latColumnIndex] = "150";
+            valArray[lonColumnIndex] = "20";
+            /* END TEST LINES */
+
+            /* If we have latitude and longitude information */
+            Geometry g = null;
+            if (latColumnIndex != -1 && lonColumnIndex != -1 && valArray[latColumnIndex] != null && valArray[lonColumnIndex] != null) {
+                g = PGgeometry.geomFromString(String.format("POINT(%s %s)", valArray[lonColumnIndex], valArray[latColumnIndex]));
+                g.setSrid(4326);
+            }
+
             /* Now that we have all of the information out of our current node, we need to put it in the database */
-            addValueToPreparedStatement(s, valArray);
+            addValuesToPreparedStatement(s, valArray, g);
             try {
                 s.executeUpdate();
             } catch (SQLException e) {
@@ -125,18 +180,20 @@ public class WebEOCDAO {
         }
     }
 
-    private void addValueToPreparedStatement(PreparedStatement ps, String[] valArray) {
+    private void addValuesToPreparedStatement(PreparedStatement ps, String[] valArray, Geometry g) {
         for (int i = 0; i < valArray.length; i++) {
             String dataType = columnTypeMap.get(columnOrder[i]);
             System.out.println("Datatype is " + dataType + " and value is " + valArray[i]);
             try {
-                if (valArray[i] == null) {
+                if (dataType.equals("USER-DEFINED")) {
+                    ps.setObject(i + 1, g, Types.OTHER);
+                } else if (valArray[i] == null) {
                     ps.setNull(i + 1, dataTypeMap.get(dataType));
                 } else if (dataType.equals("double precision")) {
                     ps.setDouble(i + 1, Double.parseDouble(valArray[i]));
                 } else if (dataType.equals("text")) {
                     ps.setString(i + 1, valArray[i]);
-                } else if (dataType.equals("timestamp without time zone")) {
+                } else if (dataType.equals("timestamp without time zo ne")) {
                     Date d = parseDate(valArray[i]);
                     if (d == null)
                         ps.setNull(i + 1, dataTypeMap.get(dataType));
