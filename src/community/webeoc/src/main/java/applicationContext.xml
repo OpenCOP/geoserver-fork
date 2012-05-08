@@ -17,6 +17,15 @@
     <property name="order" value="10"/>
   </bean>
   
+  <bean id="manageWebEocPollerPage" class="org.geoserver.web.MenuPageInfo">
+    <property name="id" value="manageWebEocPollerPage"/>
+    <property name="titleKey" value="ManageWebEocPollerPage.title"/>
+    <property name="descriptionKey" value="ManageWebEocPollerPage.description"/>
+    <property name="componentClass" value="org.geoserver.webeoc.poller.ManageWebEocPollerPage"/>
+    <property name="category" ref="webeocCategory"/>
+    <property name="order" value="10"/>
+  </bean>
+  
   <bean id="webEOCLayerEditTabPanelInfo" class="org.geoserver.web.data.resource.LayerEditTabPanelInfo">
     <property name="id" value="webEOCLayerEditTabPanelInfo" />
     <property name="titleKey" value="WebEOCLayerEditTabPanelInfo.title" />
