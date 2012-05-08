@@ -165,7 +165,7 @@ public class WebEOCDAO {
 
             /* If we have latitude and longitude information */
             Geometry g = null;
-            if (valArray[latColumnIndex] != null && valArray[lonColumnIndex] != null) {
+            if (latColumnIndex != -1 && lonColumnIndex != -1 && valArray[latColumnIndex] != null && valArray[lonColumnIndex] != null) {
                 g = PGgeometry.geomFromString(String.format("POINT(%s %s)", valArray[lonColumnIndex], valArray[latColumnIndex]));
                 g.setSrid(4326);
             }
