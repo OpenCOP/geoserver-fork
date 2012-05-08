@@ -2,35 +2,60 @@
   <head></head>
   <body>
   <wicket:panel>
-    <!--    <div wicket:id="webeocLayerEditor"></div>-->
 
     <ul>
-      <li>
-        <fieldset>
-          <legend>
-            <span>Layer Info</span>
-          </legend>
-          <ul>
-            <li>Incident</li>
-            <li>Board</li>
-            <li>View</li>
-            <li>geometry columns</li>
-            <li>last_updated</li>
-          </ul>
-        </fieldset>
-      </li>
-      <li>
-        <fieldset>
-          <legend>
-            <span>Actions</span>
-          </legend>
-          <ul>
-            <li>governor button</li>
-            <li>actively polling</li>
-            <li>polling interval (editable)</li>
-          </ul>
-        </fieldset>
-      </li>
+      <wicket:container wicket:id="notWebeocMessage">
+        <li>
+          Not a WebEOC layer
+        </li>
+      </wicket:container>
+      <wicket:container wicket:id="webeocContainer">
+        <li>
+          <fieldset>
+            <legend>
+              <span>Layer Info</span>
+            </legend>
+            <ul>
+              <li>
+                <label for="incident"><wicket:message key="incident">Incident</wicket:message></label>
+                <input wicket:id="incident" type="text" class="text"/>
+              </li>
+              <li>
+                <label for="board"><wicket:message key="board">Board</wicket:message></label>
+                <input wicket:id="board" type="text" class="text"/>
+              </li>
+              <li>
+                <label for="view"><wicket:message key="view">View</wicket:message></label>
+                <input wicket:id="view" type="text" class="text"/>
+              </li>
+              <li>
+                <label for="lon"><wicket:message key="lon">Longitude Field</wicket:message></label>
+                <input wicket:id="lon" type="text" class="text"/>
+              </li>
+              <li>
+                <label for="lat"><wicket:message key="lat">Latitude Field</wicket:message></label>
+                <input wicket:id="lat" type="text" class="text"/>
+              </li>
+              <li>
+                <label for="lastUpdated"><wicket:message key="lastUpdated">Last Updated Field</wicket:message></label>
+                <input wicket:id="lastUpdated" type="text" class="text"/>
+              </li>
+            </ul>
+          </fieldset>
+        </li>
+        <li>
+          <fieldset>
+            <legend>
+              <span>Actions</span>
+            </legend>
+            <ul>
+              <li>governor button</li>
+              <li>actively polling</li>
+              <li>polling interval (editable)</li>
+            </ul>
+          </fieldset>
+        </li>
+      </wicket:container>
     </ul>
   </wicket:panel>
 </body>
