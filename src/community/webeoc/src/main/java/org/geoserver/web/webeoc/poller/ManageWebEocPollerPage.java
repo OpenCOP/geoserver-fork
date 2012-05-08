@@ -1,28 +1,32 @@
 package org.geoserver.web.webeoc.poller;
 
+import org.apache.wicket.markup.html.basic.Label;
 import org.apache.wicket.markup.html.form.Form;
-import org.apache.wicket.markup.html.form.SubmitLink;
 import org.geoserver.web.GeoServerSecuredPage;
 import org.geoserver.webeoc.poller.Poller;
 
 public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 
 	private final Form form;
-	
+
 	private static final long DEV_defaultInterval = 5000l;
 
 	public ManageWebEocPollerPage() {
 
-		add(form = new Form("form"));
-		
 		final Poller poller = Poller.getInstance();
 		final boolean isRunning = poller.isRunning();
 
-		@SuppressWarnings("serial")
-		SubmitLink saveLink = new SubmitLink(isRunning ? "Stop" : "Start", form) {
+		if (isRunning) {
+			add(new Label("msg", "Is running"));
+		} else {
+			add(new Label("msg", "Isn't running"));
+		}
+
+		add(form = new Form("form") {
+
 			@Override
-			public void onSubmit() {
-				if(isRunning) {
+			protected void onSubmit() {
+				if (isRunning) {
 					System.out.println("Stop this!");
 					poller.stop();
 				} else {
@@ -30,9 +34,7 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 					poller.start(DEV_defaultInterval);
 				}
 			}
-		};
-		form.add(saveLink);
-		form.setDefaultButton(saveLink);
+		});
 
 	}
 }

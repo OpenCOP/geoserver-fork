@@ -1,35 +1,16 @@
 <html xmlns:wicket="http://wicket.apache.org/">
-  <head></head>
-  <body>
-  <wicket:panel>
-    <ul>
-      <li>
-        <fieldset>
-          <legend>
-            <span>Layer Info</span>
-          </legend>
-          <ul>
-            <li>Incident</li>
-            <li>Board</li>
-            <li>View</li>
-            <li>geometry columns</li>
-            <li>last_updated</li>
-          </ul>
-        </fieldset>
-      </li>
-      <li>
-        <fieldset>
-          <legend>
-            <span>Actions</span>
-          </legend>
-          <ul>
-            <li>governor button</li>
-            <li>actively polling</li>
-            <li>polling interval (editable)</li>
-          </ul>
-        </fieldset>
-      </li>
-    </ul>
-  </wicket:panel>
+<body>
+	<wicket:extend>
+
+		<p>
+			<span wicket:id="msg"></span>
+		</p>
+		<div>
+			<form wicket:id="form">
+				<input type="submit" value="Toggle poller" />
+			</form>
+		</div>
+
+	</wicket:extend>
 </body>
 </html>
