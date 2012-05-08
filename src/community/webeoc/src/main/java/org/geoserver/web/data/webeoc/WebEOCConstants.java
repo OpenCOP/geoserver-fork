@@ -6,6 +6,8 @@ package org.geoserver.web.data.webeoc;
  */
 public class WebEOCConstants {
   // Datastore Contstants
+  public static final String WEBEOC_DATASTORE_NAME = "WebEOC";
+  public static final String WEBEOC_DATASTORE_DESCRIPTION = "WebEOC Datastore.  This uses a PostGIS database as caching mechanism.  Credentials for both the Web EOC instance, and write access to a PostGIS database must be provided";
   public static final String WEBEOC_WSDL_KEY = "WebEOC WSDL";
   public static final String WEBEOC_POSITION_KEY = "WebEOC Position";
   public static final String WEBEOC_USER_KEY = "WebEOC Username";

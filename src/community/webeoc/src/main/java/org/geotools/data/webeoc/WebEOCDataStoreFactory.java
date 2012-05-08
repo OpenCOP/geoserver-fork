@@ -37,10 +37,11 @@ public class WebEOCDataStoreFactory extends PostgisNGDataStoreFactory {
 
     @Override
     public String getDisplayName() {
-        return "WebEOC";
+        return WebEOCConstants.WEBEOC_DATASTORE_NAME;
     }
 
+    @Override
     public String getDescription() {
-        return "WebEOC Datastore.  This uses a PostGIS database as caching mechanism.  Credentials for both the Web EOC instance, and write access to a PostGIS database must be provided";
+        return WebEOCConstants.WEBEOC_DATASTORE_DESCRIPTION;
     }
 }
