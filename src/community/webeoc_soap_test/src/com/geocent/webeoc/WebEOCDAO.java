@@ -95,7 +95,7 @@ public class WebEOCDAO {
         }
     }
 
-    public void insertIntoEOCTable(String webEOCXMLResponse) throws Exception {
+    public void insertIntoEOCTable() throws Exception {
 
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         DocumentBuilder db = dbf.newDocumentBuilder();
