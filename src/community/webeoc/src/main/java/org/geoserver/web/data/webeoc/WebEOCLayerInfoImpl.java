@@ -1,5 +1,8 @@
 package org.geoserver.web.data.webeoc;
 
+import java.util.Map;
+import java.util.TreeMap;
+
 /**
  *
  * @author yancy
@@ -9,6 +12,22 @@ public class WebEOCLayerInfoImpl implements WebEOCLayerInfo {
   private String board;
   private String view;
   private boolean pollingActive;
+
+  private String lonField;
+  private String latField;
+  private String lastUpdatedField;
+
+  public Map<String, String> getAsMap() {
+    TreeMap<String, String> map = new TreeMap<String, String>();
+    map.put(WebEOCConstants.WEBEOC_INCIDENT_KEY, incident);
+    map.put(WebEOCConstants.WEBEOC_BOARD_KEY, board);
+    map.put(WebEOCConstants.WEBEOC_VIEW_KEY, view);
+    map.put(WebEOCConstants.WEBEOC_POLLINGACTIVE_KEY, String.valueOf(pollingActive));
+    map.put(WebEOCConstants.WEBEOC_LONFIELD_KEY, lonField);
+    map.put(WebEOCConstants.WEBEOC_LATFIELD_KEY, latField);
+    map.put(WebEOCConstants.WEBEOC_LASTUPDATEDFIELD_KEY, lastUpdatedField);
+    return map;
+  }
 
   /**
    * @return the incident
@@ -73,5 +92,46 @@ public class WebEOCLayerInfoImpl implements WebEOCLayerInfo {
   public void setPollingActive(boolean pollingActive) {
     this.pollingActive = pollingActive;
   }
-  
+
+  /**
+   * @return the lonField
+   */
+  public String getLonField() {
+    return lonField;
+  }
+
+  /**
+   * @param lonField the lonField to set
+   */
+  public void setLonField(String lonField) {
+    this.lonField = lonField;
+  }
+
+  /**
+   * @return the latField
+   */
+  public String getLatField() {
+    return latField;
+  }
+
+  /**
+   * @param latField the latField to set
+   */
+  public void setLatField(String latField) {
+    this.latField = latField;
+  }
+
+  /**
+   * @return the lastUpdatedField
+   */
+  public String getLastUpdatedField() {
+    return lastUpdatedField;
+  }
+
+  /**
+   * @param lastUpdatedField the lastUpdatedField to set
+   */
+  public void setLastUpdatedField(String lastUpdatedField) {
+    this.lastUpdatedField = lastUpdatedField;
+  }
 }

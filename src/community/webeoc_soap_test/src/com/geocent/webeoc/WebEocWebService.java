@@ -25,7 +25,45 @@ public class WebEocWebService {
 	private static APISoap apiSoap = new API().getAPISoap();
 	
 	public static void main(String[] args) {
-		exerciseAllCalls();
+//		exerciseAllCalls();
+		exerciseTimer();
+	}
+	
+	private static void exerciseTimer() {
+		Poller poller = Poller.getInstance();
+		
+		System.out.println("Just a few seconds...");
+		poller.start(1000l);
+		pause(3000l);
+		poller.stop();
+		
+		System.out.println("A respectful waiting period.");
+		pause(3000l);
+		
+		System.out.println("A 5 second polling period, cut short.");
+		poller.start(5000l);
+		pause(3000l);
+		System.out.println("Poll now!");
+		poller.pollNow();
+		
+		pause(1000l);
+		System.out.println("A respectful waiting period.");
+		pause(2000l);
+		
+		System.out.println("Poller is running (should be true): " + poller.isRunning());
+ 		
+		poller.stop();
+		System.out.println("Poller is running (should be false): " + poller.isRunning());
+		
+		System.out.println("Done.");
+	}
+	
+	private static void pause(long ms) {
+		try {
+			Thread.sleep(ms);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 	}
 
 	/**

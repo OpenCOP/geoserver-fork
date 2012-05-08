@@ -17,6 +17,14 @@ public class WebEOCConstants {
   public static final String WEBEOC_INCIDENT_KEY = "webeoc.incident";
   public static final String WEBEOC_BOARD_KEY = "webeoc.board";
   public static final String WEBEOC_VIEW_KEY = "webeoc.view";
+  public static final String WEBEOC_POLLINGACTIVE_KEY = "webeoc.pollingActive";
+  public static final String WEBEOC_LONFIELD_KEY = "webeoc.lonField";
+  public static final String WEBEOC_LATFIELD_KEY = "webeoc.latField";
+  public static final String WEBEOC_LASTUPDATEDFIELD_KEY = "webeoc.lastUpdatedField";
+
+  public static final String WEBEOC_DEFAULT_GEOM_NAME = "the_geom";
+
+  public static final int TABLE_NAME_MAXLENGTH = 63;
   
   public static final String DEFAULT_CRS = "EPSG:4326";
 }
