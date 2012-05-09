@@ -24,6 +24,10 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 			@Override
 			protected void onSubmit() {
 				Poller poller = Poller.getInstance();
+        if (null == poller.getCatalog()) {
+          poller.setCatalog(getCatalog());
+        }
+
 				if (poller.isRunning()) {
 					System.out.println("Stop this!");
 					poller.stop();

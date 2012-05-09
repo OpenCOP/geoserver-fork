@@ -2,6 +2,7 @@ package org.geoserver.web.data.webeoc;
 
 import com.esi911.webeoc7.api._1.WebEOCCredentials;
 import java.io.Serializable;
+import java.util.Map;
 
 /**
  *
@@ -14,6 +15,18 @@ public class WebEOCCredentialsSerializedWrapper implements Serializable {
   private String position;
   private String jurisdiction;
   private String incident;
+  
+  /**
+   * Convenience setter for getting the WebEOC info out of the datastore's
+   * connectionParameters map.
+   * 
+   * @param map 
+   */
+  public void set(Map<String, Serializable> map) {
+    setUsername(map.get(WebEOCConstants.WEBEOC_USER_KEY).toString());
+    setPassword(map.get(WebEOCConstants.WEBEOC_PASSWORD_KEY).toString());
+    setPosition(map.get(WebEOCConstants.WEBEOC_POSITION_KEY).toString());
+  }
 
   public WebEOCCredentials getWebEOCCredentials() {
     WebEOCCredentials creds = new WebEOCCredentials();
@@ -23,6 +36,16 @@ public class WebEOCCredentialsSerializedWrapper implements Serializable {
     creds.setJurisdiction(jurisdiction);
     creds.setIncident(incident);
     return creds;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    builder.append("[Username=").append(username)
+           .append(",Password=").append(password)
+           .append(",Position=").append(position)
+           .append("]");
+    return builder.toString();
   }
 
   /**

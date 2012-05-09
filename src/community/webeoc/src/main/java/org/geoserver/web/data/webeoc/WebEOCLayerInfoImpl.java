@@ -1,5 +1,6 @@
 package org.geoserver.web.data.webeoc;
 
+import java.io.Serializable;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -16,6 +17,29 @@ public class WebEOCLayerInfoImpl implements WebEOCLayerInfo {
   private String lonField;
   private String latField;
   private String lastUpdatedField;
+  
+  /**
+   * Convenience setter for getting the WebEOC info out of the featureType's
+   * metadata map.
+   * 
+   * @param map 
+   */
+  public void set(Map<String, Serializable> map) {
+    if (null != map.get(WebEOCConstants.WEBEOC_INCIDENT_KEY))
+      incident = String.valueOf(map.get(WebEOCConstants.WEBEOC_INCIDENT_KEY));
+    if (null != map.get(WebEOCConstants.WEBEOC_BOARD_KEY))
+      board = String.valueOf(map.get(WebEOCConstants.WEBEOC_BOARD_KEY));
+    if (null != map.get(WebEOCConstants.WEBEOC_VIEW_KEY))
+      view = String.valueOf(map.get(WebEOCConstants.WEBEOC_VIEW_KEY));
+    if (null != map.get(WebEOCConstants.WEBEOC_POLLING_ENABLED_KEY))
+      pollingEnabled = Boolean.valueOf(String.valueOf(map.get(WebEOCConstants.WEBEOC_POLLING_ENABLED_KEY)));
+    if (null != map.get(WebEOCConstants.WEBEOC_LONFIELD_KEY))
+      lonField = String.valueOf(map.get(WebEOCConstants.WEBEOC_LONFIELD_KEY));
+    if (null != map.get(WebEOCConstants.WEBEOC_LATFIELD_KEY))
+      latField = String.valueOf(map.get(WebEOCConstants.WEBEOC_LATFIELD_KEY));
+    if (null != map.get(WebEOCConstants.WEBEOC_LASTUPDATEDFIELD_KEY))
+      lastUpdatedField = String.valueOf(map.get(WebEOCConstants.WEBEOC_LASTUPDATEDFIELD_KEY));
+  }
 
   public Map<String, String> getAsMap() {
     TreeMap<String, String> map = new TreeMap<String, String>();
@@ -27,6 +51,20 @@ public class WebEOCLayerInfoImpl implements WebEOCLayerInfo {
     map.put(WebEOCConstants.WEBEOC_LATFIELD_KEY, latField);
     map.put(WebEOCConstants.WEBEOC_LASTUPDATEDFIELD_KEY, lastUpdatedField);
     return map;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    builder.append("[Incident=").append(incident)
+           .append(",Board=").append(board)
+           .append(",View=").append(view)
+           .append(",PollingEnabled=").append(pollingEnabled)
+           .append(",LonField=").append(lonField)
+           .append(",LatField=").append(latField)
+           .append(",LastUpdated=").append(lastUpdatedField)
+           .append("]");
+    return builder.toString();
   }
 
   /**

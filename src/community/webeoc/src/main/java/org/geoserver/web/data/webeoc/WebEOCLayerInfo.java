@@ -84,5 +84,12 @@ public interface WebEOCLayerInfo extends Serializable {
   void setLonField(String lonField);
 
   Map<String, String> getAsMap();
-  
+ 
+  /**
+   * Convenience setter for getting the WebEOC info out of the featureType's
+   * metadata map.
+   * 
+   * @param map 
+   */
+  public void set(Map<String, Serializable> map); 
 }

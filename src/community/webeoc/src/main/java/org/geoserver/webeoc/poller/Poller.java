@@ -1,6 +1,8 @@
 package org.geoserver.webeoc.poller;
 
 import java.util.Timer;
+import org.geoserver.catalog.Catalog;
+import org.geoserver.web.GeoServerApplication;
 
 public class Poller {
 	
@@ -11,13 +13,14 @@ public class Poller {
 
 	private Timer timer = null;
 	private long intervalMs;
+  private Catalog catalog = null;
 
 	public void start(long intervalMs) {
 		stop();
 		
 		this.intervalMs = intervalMs;
 		timer = new Timer(true); 
-		timer.scheduleAtFixedRate(new PollerTask(), 0l, intervalMs);
+		timer.scheduleAtFixedRate(new WebEOCPollerTask(catalog), 0l, intervalMs);
 	}
 
 	public void stop() {
@@ -35,5 +38,19 @@ public class Poller {
 	public boolean isRunning() {
 		return timer != null;
 	}
+
+  /**
+   * @return the catalog
+   */
+  public Catalog getCatalog() {
+    return catalog;
+  }
+
+  /**
+   * @param catalog the catalog to set
+   */
+  public void setCatalog(Catalog catalog) {
+    this.catalog = catalog;
+  }
 
 }
