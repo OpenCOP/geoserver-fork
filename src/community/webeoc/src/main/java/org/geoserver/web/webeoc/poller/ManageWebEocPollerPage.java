@@ -71,7 +71,7 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 
         // Only update the poller interval if its different
         // TODO: need further validation (number, greater than 0, etc.)
-        if (!pollerIntervalModel.equals(oldInterval)) {
+        if (null != pollerIntervalModel && !pollerIntervalModel.equals(oldInterval)) {
           metadata.put(WebEOCConstants.WEBEOC_POLLING_INTERVAL_KEY, pollerIntervalModel);
 
           // persist the global settings
