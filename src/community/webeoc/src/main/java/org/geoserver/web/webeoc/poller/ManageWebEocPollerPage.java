@@ -20,7 +20,6 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
   private final Form form;
   private boolean pollerEnabledModel;
   private String pollerIntervalModel;
-  private static final long DEV_defaultInterval = 50000l;
 
   public ManageWebEocPollerPage() {
 
@@ -79,12 +78,12 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
         }
 
         // Change the poller's status based on user input
-        if (!pollerEnabledModel && poller.isRunning()) {
+        if (!pollerEnabledModel) {
           System.out.println("Stop this!");
           poller.stop();
-        } else if (pollerEnabledModel && !poller.isRunning()) {
+        } else {
           System.out.println("Start this!");
-          poller.start(DEV_defaultInterval);
+          poller.start(Long.valueOf(pollerIntervalModel));
         }
 
         // if you don't do this, the page won't refresh right

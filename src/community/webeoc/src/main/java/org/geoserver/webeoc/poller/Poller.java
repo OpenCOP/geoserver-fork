@@ -13,8 +13,12 @@ public class Poller {
 
 	private Timer timer = null;
 	private long intervalMs;
-  private Catalog catalog = null;
+	private Catalog catalog = null;
 
+	/**
+	 * Starts the poller. If the poller is already running, changes the polling
+	 * interval and forces the poller to poll immediately.
+	 */
 	public void start(long intervalMs) {
 		stop();
 		
@@ -24,8 +28,8 @@ public class Poller {
 	}
 
 	public void stop() {
-		if(timer == null) return;
-		
+		if (timer == null) return;
+
 		timer.cancel();
 		timer = null;
 	}
