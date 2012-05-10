@@ -1,4 +1,4 @@
-package com.geocent.webeoc;
+package org.geoserver.webeoc;
 
 import com.esi911.webeoc7.api._1.WebEOCCredentials;
 

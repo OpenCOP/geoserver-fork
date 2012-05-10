@@ -20,7 +20,7 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
   private final Form form;
   private boolean pollerEnabledModel;
   private String pollerIntervalModel;
-  private static final long DEV_defaultInterval = 5000l;
+  private static final long DEV_defaultInterval = 50000l;
 
   public ManageWebEocPollerPage() {
 
