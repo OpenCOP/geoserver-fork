@@ -239,6 +239,7 @@ public class WebEocDao {
 	}
 
 	private Geometry point(String lat, String lon, int srid) {
+		System.out.println(String.format("Trying to make a point out of %s and %s", lat, lon));
 		try {
 			return geometry(String.format("POINT(%s %s)", lat, lon), srid);
 		} catch (Exception e) {
@@ -248,8 +249,15 @@ public class WebEocDao {
 	}
 
 	private Geometry geometry(String wkt, int srid) throws Exception {
+		System.out.println(String.format("Trying to make a point out of wkt %s", wkt));
+		System.out.println(String.format("Trying to make a point out of srid %s", srid));
 		Geometry geom = new WKTReader().read(wkt);
-		geom.setUserData(CRS.decode("EPSG:" + srid));
+//		geom.setUserData(CRS.decode("EPSG:" + srid));
+		geom.setSRID(srid);
+		System.out.println(String.format("Trying to make a point out of srid %s", srid));
+		System.out.println("geom string " + geom.toString());
+		System.out.println("geom text " + geom.toText());
+		System.out.println("the official srid is " + geom.getSRID());
 		return geom;
 	}
 
@@ -261,7 +269,7 @@ public class WebEocDao {
 					+ valArray[i]);
 			try {
 				if (dataType.equals("USER-DEFINED")) {
-					ps.setObject(i + 1, g, Types.OTHER);
+					ps.setString(i, "now()");
 				} else if (valArray[i] == null) {
 					ps.setNull(i + 1, dataTypeMap.get(dataType));
 				} else if (dataType.equals("double precision")) {
