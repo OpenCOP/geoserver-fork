@@ -22,7 +22,6 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.io.WKTReader;
 
 public class WebEocDao {
@@ -168,6 +167,18 @@ public class WebEocDao {
 		}
 	}
 
+	/**
+	 * Returns the index in columnOrder of the given name.
+	 * 
+	 * ex: "fid" -> 1
+	 */
+	private int getIndexOfColumnName(String name) {
+		// arrays don't have an "indexOf" method.  :(
+		for( int i = 0; i < columnOrder.length; ++i ) 
+			if(columnOrder[i].equals(name)) return i;
+		return -1;
+	}
+
 	public void insertIntoEOCTable() throws Exception {
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		DocumentBuilder db = dbf.newDocumentBuilder();
@@ -178,6 +189,7 @@ public class WebEocDao {
 		String insertStatement = buildStartOfInsertSQL();
 		PreparedStatement s = conn.prepareStatement(insertStatement);
 		String[] valArray = new String[columnOrder.length];
+
 		/* For each record node */
 		for (int i = 0; i < recordNodes.getLength(); i++) {
 			Node curNode = recordNodes.item(i);
@@ -207,7 +219,13 @@ public class WebEocDao {
 			 * we need to put it in the database
 			 */
 			addValuesToPreparedStatement(s, valArray, g);
-			s.setInt(1, (int) (Math.random() * 1000000));
+			
+			// use their unique ID (dataid) as our unique id (fid)
+			int fidColId = getIndexOfColumnName("fid");
+			int dataidColId = getIndexOfColumnName("dataid");
+			// Prepared statement is 1-index.  I know, right?
+			s.setInt(fidColId + 1, Integer.valueOf(valArray[dataidColId]));  
+			
 			try {
 				System.out.println("The prepared sql statement is:");
 				System.out.println(s.toString());
@@ -248,7 +266,8 @@ public class WebEocDao {
 					ps.setNull(i + 1, dataTypeMap.get(dataType));
 				} else if (dataType.equals("double precision")) {
 					ps.setDouble(i + 1, Double.parseDouble(valArray[i]));
-				} else if (dataType.equals("text") || dataType.equals("character varying")) {
+				} else if (dataType.equals("text")
+						|| dataType.equals("character varying")) {
 					ps.setString(i + 1, valArray[i]);
 				} else if (dataType.equals("timestamp without time zo ne")) {
 					Date d = parseDate(valArray[i]);
@@ -278,8 +297,11 @@ public class WebEocDao {
 								+ valArray[i]
 								+ "' and couldn't. Interpreting it as null.");
 				try {
-					System.out.println(String.format("The datatype is '%s'.", dataType));
-					System.out.println(String.format("The dataTypeMap.get(dataType) is '%s'.", dataTypeMap.get(dataType)));
+					System.out.println(String.format("The datatype is '%s'.",
+							dataType));
+					System.out.println(String.format(
+							"The dataTypeMap.get(dataType) is '%s'.",
+							dataTypeMap.get(dataType)));
 					ps.setNull(i + 1, dataTypeMap.get(dataType));
 				} catch (SQLException e1) {
 					e1.printStackTrace();
