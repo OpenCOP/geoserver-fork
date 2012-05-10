@@ -269,7 +269,7 @@ public class WebEocDao {
 					+ valArray[i]);
 			try {
 				if (dataType.equals("USER-DEFINED")) {
-					ps.setString(i, "now()");
+					ps.setObject(i + 1, g, Types.OTHER);
 				} else if (valArray[i] == null) {
 					ps.setNull(i + 1, dataTypeMap.get(dataType));
 				} else if (dataType.equals("double precision")) {
