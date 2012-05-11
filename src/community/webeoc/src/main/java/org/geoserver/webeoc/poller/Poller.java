@@ -2,7 +2,6 @@ package org.geoserver.webeoc.poller;
 
 import java.util.Timer;
 import org.geoserver.catalog.Catalog;
-import org.geoserver.web.GeoServerApplication;
 
 public class Poller {
 	
