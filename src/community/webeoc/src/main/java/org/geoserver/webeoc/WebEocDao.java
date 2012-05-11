@@ -316,7 +316,7 @@ public class WebEocDao {
                 } else if (dataType.equals("text")
                         || dataType.equals("character varying")) {
                     ps.setString(i + 1, valArray[i]);
-                } else if (dataType.equals("timestamp without time zo ne")) {
+                } else if (dataType.equals("timestamp without time zone")) {
                     Date d = parseDate(valArray[i]);
                     if (d == null) {
                         ps.setNull(i + 1, dataTypeMap.get(dataType));
