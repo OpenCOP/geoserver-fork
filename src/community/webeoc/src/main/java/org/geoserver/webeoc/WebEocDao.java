@@ -266,7 +266,7 @@ public class WebEocDao {
     private Geometry point(String lat, String lon, int srid) {
         System.out.println(String.format("Trying to make a point out of %s and %s", lat, lon));
         try {
-            return geometry(String.format("POINT(%s %s)", lat, lon), srid);
+            return geometry(String.format("POINT(%s %s)", lon, lat), srid);
         } catch (Exception e) {
             e.printStackTrace();
             return null;
