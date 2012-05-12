@@ -181,11 +181,29 @@
         <module>authkey</module>
       </modules>
     </profile>
-    <profile>      
+    <profile>
+      <id>opencop-all</id>
+      <modules>
+        <module>storelist</module>
+        <module>opencop</module>
+        <module>geoext-lib-dep</module>
+        <module>geoext-lib</module>
+        <module>wfseditor</module>
+      </modules>
+    </profile>
+    <profile>
       <id>opencop</id>
       <modules>
         <module>storelist</module>
         <module>opencop</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>wfseditor</id>
+      <modules>
+        <module>geoext-lib-dep</module>
+        <module>geoext-lib</module>
+        <module>wfseditor</module>
       </modules>
     </profile>
   </profiles>
