@@ -181,5 +181,12 @@
         <module>authkey</module>
       </modules>
     </profile>
+    <profile>      
+      <id>opencop</id>
+      <modules>
+        <module>storelist</module>
+        <module>opencop</module>
+      </modules>
+    </profile>
   </profiles>
 </project>
