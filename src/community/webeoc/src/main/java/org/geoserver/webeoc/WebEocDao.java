@@ -39,6 +39,7 @@ public class WebEocDao {
     private static final String DB_PASSWORD = "57levelsofeoc";
     private static final String LATITUDE_COLUMN = "latitude";
     private static final String LONGITUDE_COLUMN = "longitude";
+    private static final String UPDATE_DATE_COLUMN = "entrydate";
     /*
      * END HARDCODED LIST
      */
@@ -50,14 +51,14 @@ public class WebEocDao {
 
     private int latColumnIndex = -1;
     private int lonColumnIndex = -1;
-
+    private int updatedDateIndex = -1;
+    
     /*
      * Keeps a map of 'data type' (returned from postgres db table metadata) ->
      * java.sql.Types integer
      */
     private static final HashMap<String, Integer> dataTypeMap = new HashMap<String, Integer>();
     private String tableName;
-    private String webEOCXMLResponse;
 
     /*
      * Keeps a map of 'column name' -> 'data type'
@@ -96,10 +97,9 @@ public class WebEocDao {
         dataTypeMap.put("boolean", Types.BOOLEAN);
     }
 
-    public WebEocDao(String tableName, String webEOCXMLResponse)
+    public WebEocDao(String tableName)
             throws Exception {
         this.tableName = tableName;
-        this.webEOCXMLResponse = webEOCXMLResponse;
         this.columnOrder = new String[getNumColumns()];
         initTableDataInfo();
         setGeomColumnIndicies();
@@ -112,8 +112,7 @@ public class WebEocDao {
         if (rs.next()) {
             return rs.getInt("count");
         } else {
-            throw new Exception(String.format("ERROR: Table %s NOT FOUND",
-                    tableName));
+            throw tableNotFoundException(tableName);
         }
     }
 
@@ -139,18 +138,13 @@ public class WebEocDao {
                 break;
             }
         }
+        
         /*
          * Figure out where the latitude and longitude information is
          */
-        for (int i = 0; i < columnOrder.length; i++) {
-            if (columnOrder[i].equals(LATITUDE_COLUMN)) {
-                this.latColumnIndex = i;
-            }
-            if (columnOrder[i].equals(LONGITUDE_COLUMN)) {
-                this.lonColumnIndex = i;
-            }
-        }
-        return;
+        this.latColumnIndex = getIndexOfColumnName(LATITUDE_COLUMN);
+        this.lonColumnIndex = getIndexOfColumnName(LONGITUDE_COLUMN);
+        this.updatedDateIndex = getIndexOfColumnName(UPDATE_DATE_COLUMN);
     }
 
     private void initTableDataInfo() throws Exception {
@@ -189,7 +183,7 @@ public class WebEocDao {
         return -1;
     }
 
-    public void insertIntoEOCTable() throws Exception {
+    public void insertIntoEOCTable(String webEOCXMLResponse) throws Exception {
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
         DocumentBuilder db = dbf.newDocumentBuilder();
         Document dom = db.parse(new ByteArrayInputStream(webEOCXMLResponse.getBytes()));
@@ -317,7 +311,7 @@ public class WebEocDao {
                         || dataType.equals("character varying")) {
                     ps.setString(i + 1, valArray[i]);
                 } else if (dataType.equals("timestamp without time zone")) {
-                    Date d = parseDate(valArray[i]);
+                    Date d = parseMonthFirst(valArray[i]);
                     if (d == null) {
                         ps.setNull(i + 1, dataTypeMap.get(dataType));
                     } else {
@@ -368,19 +362,25 @@ public class WebEocDao {
         }
     }
 
-    private Date parseDate(String date) {
-        /*
-         * TODO we may need other simple date formatters in the future if we
-         * discover they store dates in a variety of formats
-         */
-        String dateFormatString = "MM/dd/yyyy HH:mm:ss";
-        SimpleDateFormat sdf = new SimpleDateFormat(dateFormatString);
+    private Date parseMonthFirst(String date) {
+    	return parseDate(date, "MM/dd/yyyy HH:mm:ss");
+    }
+    
+    private Date parseYearFirst(String date) {
+    	return parseDate(date, "yyyy-MM-dd HH:mm:ss");
+    }
+    
+    private Date parseDate(String dateStr, String format) {
+    	
+    	if(dateStr == null) return null;
+    	
         try {
-            return sdf.parse(date);
+            return new SimpleDateFormat(format).parse(dateStr);
         } catch (ParseException e) {
-            System.out.println("WARNING DATE " + date
-                    + " Could not be parsed as " + dateFormatString
+            System.out.println("WARNING DATE " + dateStr
+                    + " Could not be parsed as " + format
                     + " Returning null");
+        	e.printStackTrace();
             return null;
         }
     }
@@ -401,6 +401,27 @@ public class WebEocDao {
         sb.append(")");
         return sb.toString();
     }
+    
+    public Date getMaxDate() throws Exception {
+    	
+    	PreparedStatement s = conn.prepareStatement(
+    			String.format("select max(%s) from %s", 
+    					UPDATE_DATE_COLUMN, 
+    					tableName));
+    	
+    	ResultSet rs = s.executeQuery();
+    	if(rs.next()) {
+    		System.out.println("rs.getString is " + rs.getString(1));
+    		System.out.println("parsed is " + parseYearFirst(rs.getString(1)));
+    		return parseYearFirst(rs.getString(1));
+    	} else {
+    		throw tableNotFoundException(tableName);
+    	}
+    }
+    
+    private Exception tableNotFoundException(String tableName) {
+    	return new Exception(String.format("ERROR: Table %s NOT FOUND", tableName));
+    }
 
     /*
      * TEST MAIN CLASS
@@ -409,8 +430,8 @@ public class WebEocDao {
         File f = new File("C:\\Users\\pcoleman\\WebEOCexampleData.xml");
         try {
             FileInputStream fis = new FileInputStream(f);
-            WebEocDao webDAO = new WebEocDao("uc_san_diego_shelters_details", IOUtils.toString(fis));
-            webDAO.insertIntoEOCTable();
+            WebEocDao webDAO = new WebEocDao("uc_san_diego_shelters_details");
+            webDAO.insertIntoEOCTable(IOUtils.toString(fis));
         } catch (Exception e) {
             System.out.println("FFFFFF");
         }
