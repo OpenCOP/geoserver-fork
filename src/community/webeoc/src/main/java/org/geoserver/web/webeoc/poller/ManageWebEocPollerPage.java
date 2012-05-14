@@ -15,8 +15,10 @@ import org.geoserver.web.GeoServerApplication;
 import org.geoserver.web.GeoServerHomePage;
 import org.geoserver.web.GeoServerSecuredPage;
 import org.geoserver.web.data.webeoc.WebEOCConstants;
+import org.geoserver.web.data.webeoc.WebEOCLayerInfo;
+import org.geoserver.web.data.webeoc.WebEOCLayerInfoImpl;
+import org.geoserver.webeoc.Poller;
 import org.geoserver.webeoc.WebEocDao;
-import org.geoserver.webeoc.poller.Poller;
 
 public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 
@@ -153,7 +155,9 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 
                 String tableName = layer.getResource().getNativeName() == null ? val : layer.getResource().getNativeName();
                 try {
-                    WebEocDao webDAO = new WebEocDao(m, tableName);
+                    WebEOCLayerInfo webInfo = new WebEOCLayerInfoImpl();
+                    webInfo.set(layer.getResource().getMetadata());
+                    WebEocDao webDAO = new WebEocDao(m, webInfo, tableName);
                     webDAO.delTableContents();
                     Poller.getInstance().pollNow();
                 } catch (Exception e) {
