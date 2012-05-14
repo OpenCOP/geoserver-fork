@@ -1,11 +1,14 @@
 package org.geoserver.webeoc;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Types;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -15,6 +18,8 @@ import java.util.HashMap;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.ArrayUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -22,10 +27,6 @@ import org.w3c.dom.NodeList;
 
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.WKTReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.sql.Statement;
-import org.apache.commons.io.IOUtils;
 
 public class WebEocDao {
     /*
@@ -51,7 +52,6 @@ public class WebEocDao {
 
     private int latColumnIndex = -1;
     private int lonColumnIndex = -1;
-    private int updatedDateIndex = -1;
     
     /*
      * Keeps a map of 'data type' (returned from postgres db table metadata) ->
@@ -144,7 +144,6 @@ public class WebEocDao {
          */
         this.latColumnIndex = getIndexOfColumnName(LATITUDE_COLUMN);
         this.lonColumnIndex = getIndexOfColumnName(LONGITUDE_COLUMN);
-        this.updatedDateIndex = getIndexOfColumnName(UPDATE_DATE_COLUMN);
     }
 
     private void initTableDataInfo() throws Exception {
@@ -174,13 +173,7 @@ public class WebEocDao {
      * ex: "fid" -> 1
      */
     private int getIndexOfColumnName(String name) {
-        // arrays don't have an "indexOf" method.  :(
-        for (int i = 0; i < columnOrder.length; ++i) {
-            if (columnOrder[i].equals(name)) {
-                return i;
-            }
-        }
-        return -1;
+    	return ArrayUtils.indexOf(columnOrder, name);
     }
 
     public void insertIntoEOCTable(String webEOCXMLResponse) throws Exception {
@@ -208,15 +201,6 @@ public class WebEocDao {
                 String val = ((Element) curNode).getAttribute(columnOrder[j]);
                 valArray[j] = val.isEmpty() ? null : val;
             }
-
-            /*
-             * TODO: TEST LINES, THROW OUT WHEN DONE WITH TEXT
-             */
-            //valArray[latColumnIndex] = "150";
-            //valArray[lonColumnIndex] = "20";
-            /*
-             * END TEST LINES
-             */
 
             /*
              * If we have latitude and longitude information
@@ -258,7 +242,6 @@ public class WebEocDao {
     }
 
     private Geometry point(String lat, String lon, int srid) {
-        System.out.println(String.format("Trying to make a point out of %s and %s", lat, lon));
         try {
             return geometry(String.format("POINT(%s %s)", lon, lat), srid);
         } catch (Exception e) {
@@ -268,15 +251,8 @@ public class WebEocDao {
     }
 
     private Geometry geometry(String wkt, int srid) throws Exception {
-        System.out.println(String.format("Trying to make a point out of wkt %s", wkt));
-        System.out.println(String.format("Trying to make a point out of srid %s", srid));
         Geometry geom = new WKTReader().read(wkt);
-//		geom.setUserData(CRS.decode("EPSG:" + srid));
-        geom.setSRID(srid);
-        System.out.println(String.format("Trying to make a point out of srid %s", srid));
-        System.out.println("geom string " + geom.toString());
-        System.out.println("geom text " + geom.toText());
-        System.out.println("the official srid is " + geom.getSRID());
+        geom.setSRID(srid);  // this isn't ultimately used, but whatever
         return geom;
     }
 
@@ -411,8 +387,6 @@ public class WebEocDao {
     	
     	ResultSet rs = s.executeQuery();
     	if(rs.next()) {
-    		System.out.println("rs.getString is " + rs.getString(1));
-    		System.out.println("parsed is " + parseYearFirst(rs.getString(1)));
     		return parseYearFirst(rs.getString(1));
     	} else {
     		throw tableNotFoundException(tableName);
