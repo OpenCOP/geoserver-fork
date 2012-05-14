@@ -393,4 +393,10 @@ public class WebEocDao {
     private Exception tableNotFoundException(String tableName) {
     	return new Exception(String.format("ERROR: Table %s NOT FOUND", tableName));
     }
+    
+    public void delTableContents() throws SQLException {
+        System.out.println("DELETEING CONTENTS FROM " + this.tableName);
+        Statement s = conn.createStatement();
+        s.executeUpdate("DELETE FROM " + this.tableName);
+    }
 }
