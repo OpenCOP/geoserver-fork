@@ -81,13 +81,6 @@ public class UpdateTask {
 	public static void updateWebEocTables(Catalog catalog) {
 		
 		for (DataStoreInfo store : webEocDataStores(catalog)) {
-			
-			String username = store.getConnectionParameters().get("user").toString();
-			String password = store.getConnectionParameters().get("passwd").toString();
-			System.out.println("*********************************");
-			System.out.println("Connection parameters: " + store.getConnectionParameters());
-			System.out.println("**** Username: " + username);
-			System.out.println("**** password: " + password);
 
 			List<FeatureTypeInfo> featureTypes = catalog.getResourcesByStore(store, FeatureTypeInfo.class);
 			for (FeatureTypeInfo featureType : featureTypes) {
@@ -96,7 +89,7 @@ public class UpdateTask {
 					try {
 						
 						String tableName = featureType.getNativeName();
-						WebEocDao webEocDao = new WebEocDao(username, password, tableName);
+						WebEocDao webEocDao = new WebEocDao(store.getConnectionParameters(), tableName);
 						
 						// get last-updated date (max date)
 						Date lastUpdated = webEocDao.getMaxDate();

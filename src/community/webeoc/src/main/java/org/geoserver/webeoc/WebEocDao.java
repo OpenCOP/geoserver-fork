@@ -1,8 +1,7 @@
 package org.geoserver.webeoc;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileInputStream;
+import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -14,11 +13,11 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Map;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -29,13 +28,12 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.WKTReader;
 
 public class WebEocDao {
+
     /*
      * TODO: The following varibles are only hard coded to enable easier
      * developement, in the future these will all be obtained from the Geoserver
      * datatype, possibly passed into the contructor
      */
-
-    private static final String CONNECTION_STRING = "jdbc:postgresql://localhost:5432/webeoc";
     private static final String LATITUDE_COLUMN = "latitude";
     private static final String LONGITUDE_COLUMN = "longitude";
     private static final String UPDATE_DATE_COLUMN = "entrydate";
@@ -78,19 +76,28 @@ public class WebEocDao {
         dataTypeMap.put("boolean", Types.BOOLEAN);
     }
 
-    public WebEocDao(String username, String password, String tableName)
+    public WebEocDao(Map<String, Serializable> connParams, String tableName)
             throws Exception {
-        this.conn = buildConnection(username, password);
+        this.conn = buildConnection(connParams);
         this.tableName = tableName;
         this.columnOrder = new String[getNumColumns()];
         initTableDataInfo();
         setGeomColumnIndicies();
     }
     
-    private Connection buildConnection(String username, String password) 
+    private static Connection buildConnection(Map<String, Serializable> connParams) 
     						throws SQLException, ClassNotFoundException {
-		Class.forName("org.postgresql.Driver");
-		return DriverManager.getConnection(CONNECTION_STRING, username, password);
+		Class.forName("org.postgresql.Driver");  // affirm that this class is available
+					
+		String username = connParams.get("user").toString();
+		String password = connParams.get("passwd").toString();
+		String database = connParams.get("database").toString();
+		String host = connParams.get("host").toString();
+		String port = connParams.get("port").toString();
+
+		String connStr = String.format("jdbc:postgresql://%s:%s/%s", host, port, database);
+		return DriverManager.getConnection(connStr, username, password);
+		
 //		((org.postgresql.PGConnection) conn).addDataType("geometry", Class.forName("com.vividsolutions.jts.geom.Geometry"));
 //		((org.postgresql.PGConnection) conn).addDataType("box3d", Class.forName("org.postgis.PGbox3d"));
     }
