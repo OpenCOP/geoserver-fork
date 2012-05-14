@@ -1,7 +1,10 @@
 package org.geoserver.webeoc.poller;
 
 import java.util.Timer;
+import java.util.TimerTask;
+
 import org.geoserver.catalog.Catalog;
+import org.geoserver.webeoc.UpdateTask;
 
 public class Poller {
 	
@@ -23,7 +26,12 @@ public class Poller {
 		
 		this.intervalMs = intervalMs;
 		timer = new Timer(true); 
-		timer.scheduleAtFixedRate(new WebEOCPollerTask(catalog), 0l, intervalMs);
+		timer.scheduleAtFixedRate(new TimerTask() {
+			@Override
+			public void run() {
+				UpdateTask.updateWebEocTables(catalog);	
+			}
+		}, 0l, intervalMs);
 	}
 
 	public void stop() {
