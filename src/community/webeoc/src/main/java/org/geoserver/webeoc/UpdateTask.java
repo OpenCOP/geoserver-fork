@@ -43,8 +43,7 @@ public class UpdateTask {
 			creds.getPassword(),
 			creds.getPosition());
 
-		WebEOCLayerInfo webeoc = new WebEOCLayerInfoImpl();
-		webeoc.set(featureType.getMetadata().getMap());
+		WebEOCLayerInfo webeoc = getWebEocLayerInfo(featureType);
 	
 		String incident = webeoc.getIncident();
 		String board = webeoc.getBoard();
@@ -68,10 +67,10 @@ public class UpdateTask {
 		return webEocStores;
 	}
 	
-	private static boolean isPollingEnabled(FeatureTypeInfo featureType) {
+	private static WebEOCLayerInfo getWebEocLayerInfo(FeatureTypeInfo featureType) {
 		WebEOCLayerInfo webeoc = new WebEOCLayerInfoImpl();
 		webeoc.set(featureType.getMetadata().getMap());
-		return webeoc.isPollingEnabled();
+		return webeoc;
 	}
 
 	/**
@@ -84,12 +83,14 @@ public class UpdateTask {
 
 			List<FeatureTypeInfo> featureTypes = catalog.getResourcesByStore(store, FeatureTypeInfo.class);
 			for (FeatureTypeInfo featureType : featureTypes) {
+				
+				WebEOCLayerInfo webEocLayerInfo = getWebEocLayerInfo(featureType);
 
-				if (isPollingEnabled(featureType)) {
+				if (webEocLayerInfo.isPollingEnabled()) {
 					try {
 						
 						String tableName = featureType.getNativeName();
-						WebEocDao webEocDao = new WebEocDao(store.getConnectionParameters(), tableName);
+						WebEocDao webEocDao = new WebEocDao(store.getConnectionParameters(), webEocLayerInfo, tableName);
 						
 						// get last-updated date (max date)
 						Date lastUpdated = webEocDao.getMaxDate();

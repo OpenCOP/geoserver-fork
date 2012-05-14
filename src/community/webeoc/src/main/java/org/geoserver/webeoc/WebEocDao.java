@@ -19,6 +19,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.apache.commons.lang.ArrayUtils;
+import org.geoserver.web.data.webeoc.WebEOCLayerInfo;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -29,26 +30,12 @@ import com.vividsolutions.jts.io.WKTReader;
 
 public class WebEocDao {
 
-    /*
-     * TODO: The following varibles are only hard coded to enable easier
-     * developement, in the future these will all be obtained from the Geoserver
-     * datatype, possibly passed into the contructor
-     */
-    private static final String LATITUDE_COLUMN = "latitude";
-    private static final String LONGITUDE_COLUMN = "longitude";
-    private static final String UPDATE_DATE_COLUMN = "entrydate";
-    /*
-     * END HARDCODED LIST
-     */
+	private final String lastUpdatedDateColName;
     
     protected Connection conn;
-    private int geomColumnIndex = -1; /*
-     * Default values if we don't have a geometry information in this table,
-     * this should not happen
-     */
-
-    private int latColumnIndex = -1;
-    private int lonColumnIndex = -1;
+    private int geomColumnIndex = -1;  // default if no geom. shouldn't happen.
+    private int latColumnIndex;
+    private int lonColumnIndex;
     
     /*
      * Keeps a map of 'data type' (returned from postgres db table metadata) ->
@@ -64,7 +51,11 @@ public class WebEocDao {
     private String[] columnOrder;
 
     static {
-        /*
+        initDataTypeMap();
+    }
+
+	private static void initDataTypeMap() {
+		/*
          * TODO THIS WILL NEED TO BE UPDATED WITH ALL OF THE VALUES MAPPING
          * DTD_ITENTIFIER WITH THE EQUIVELLENT JAVA SQL TYPES
          */
@@ -74,15 +65,16 @@ public class WebEocDao {
         dataTypeMap.put("integer", Types.INTEGER);
         dataTypeMap.put("timestamp without time zone", Types.TIMESTAMP);
         dataTypeMap.put("boolean", Types.BOOLEAN);
-    }
+	}
 
-    public WebEocDao(Map<String, Serializable> connParams, String tableName)
-            throws Exception {
+    public WebEocDao(Map<String, Serializable> connParams, WebEOCLayerInfo webEocLayerInfo, String tableName)
+			            throws Exception {
         this.conn = buildConnection(connParams);
         this.tableName = tableName;
         this.columnOrder = new String[getNumColumns()];
+        this.lastUpdatedDateColName = webEocLayerInfo.getLastUpdatedField();
         initTableDataInfo();
-        setGeomColumnIndicies();
+        setGeomColumnIndicies(webEocLayerInfo.getLatField(), webEocLayerInfo.getLonField());
     }
     
     private static Connection buildConnection(Map<String, Serializable> connParams) 
@@ -113,12 +105,11 @@ public class WebEocDao {
         }
     }
 
-    private void setGeomColumnIndicies() {
-        this.geomColumnIndex = -1;
-        this.latColumnIndex = -1;
+    private void setGeomColumnIndicies(String latColName, String lonColName) {
         /*
          * Figure out where the geometry column is
          */
+        this.geomColumnIndex = -1;
         for (String key : columnTypeMap.keySet()) {
             System.out.println("Checking key " + key + " its value is "
                     + columnTypeMap.get(key));
@@ -139,8 +130,8 @@ public class WebEocDao {
         /*
          * Figure out where the latitude and longitude information is
          */
-        this.latColumnIndex = getIndexOfColumnName(LATITUDE_COLUMN);
-        this.lonColumnIndex = getIndexOfColumnName(LONGITUDE_COLUMN);
+        this.latColumnIndex = ArrayUtils.indexOf(columnOrder, latColName);
+        this.lonColumnIndex = ArrayUtils.indexOf(columnOrder, lonColName);
     }
 
     private void initTableDataInfo() throws Exception {
@@ -162,15 +153,6 @@ public class WebEocDao {
                         colName));
             }
         }
-    }
-
-    /**
-     * Returns the index in columnOrder of the given name.
-     *
-     * ex: "fid" -> 1
-     */
-    private int getIndexOfColumnName(String name) {
-    	return ArrayUtils.indexOf(columnOrder, name);
     }
 
     public void insertIntoEOCTable(String webEOCXMLResponse) throws Exception {
@@ -217,8 +199,8 @@ public class WebEocDao {
             addValuesToPreparedStatement(s, valArray, g);
 
             // use their unique ID (dataid) as our unique id (fid)
-            int fidColId = getIndexOfColumnName("fid");
-            int dataidColId = getIndexOfColumnName("dataid");
+            int fidColId = ArrayUtils.indexOf(columnOrder, "fid");
+            int dataidColId = ArrayUtils.indexOf(columnOrder, "dataid");
             // Prepared statement is 1-index.  I know, right?
             s.setInt(fidColId + 1, Integer.valueOf(valArray[dataidColId]));
 
@@ -253,15 +235,14 @@ public class WebEocDao {
         return geom;
     }
 
+    /**
+     * Removes any row(s) from the database with this given id
+     */
     private void checkNDel(int id) throws SQLException {
-        /*
-         * Removes any row(s) from the database with this given id
-         */
         Statement s = conn.createStatement();
         int rowsAffected = s.executeUpdate("DELETE FROM " + this.tableName + " WHERE fid=" + id);
         String message = rowsAffected > 0 ? "Deleted " + rowsAffected + " Row(s)." : "No rows found";
         System.out.println(message);
-        return;
     }
 
     private void addValuesToPreparedStatement(PreparedStatement ps,
@@ -379,7 +360,7 @@ public class WebEocDao {
     	
     	PreparedStatement s = conn.prepareStatement(
     			String.format("select max(%s) from %s", 
-    					UPDATE_DATE_COLUMN, 
+    					lastUpdatedDateColName, 
     					tableName));
     	
     	ResultSet rs = s.executeQuery();
