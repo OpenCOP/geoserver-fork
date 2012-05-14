@@ -36,15 +36,14 @@ public class WebEocDao {
      */
 
     private static final String CONNECTION_STRING = "jdbc:postgresql://localhost:5432/webeoc";
-    private static final String DB_USERNAME = "opencop";
-    private static final String DB_PASSWORD = "57levelsofeoc";
     private static final String LATITUDE_COLUMN = "latitude";
     private static final String LONGITUDE_COLUMN = "longitude";
     private static final String UPDATE_DATE_COLUMN = "entrydate";
     /*
      * END HARDCODED LIST
      */
-    protected static Connection conn;
+    
+    protected Connection conn;
     private int geomColumnIndex = -1; /*
      * Default values if we don't have a geometry information in this table,
      * this should not happen
@@ -68,24 +67,6 @@ public class WebEocDao {
 
     static {
         /*
-         * The following is taken pretty much verbatim from
-         * http://postgis.refractions.net/documentation/manual-1.5/ch05.html#id2633989
-         */
-        try {
-            Class.forName("org.postgresql.Driver");
-            conn = DriverManager.getConnection(CONNECTION_STRING, DB_USERNAME,
-                    DB_PASSWORD);
-
-//			((org.postgresql.PGConnection) conn).addDataType("geometry",
-//					Class.forName("com.vividsolutions.jts.geom.Geometry"));
-//			((org.postgresql.PGConnection) conn).addDataType("box3d",
-//					Class.forName("org.postgis.PGbox3d"));
-        } catch (Exception e) {
-            System.out.println("SOMETHING WENT WRONNNGG (updated)");
-            e.printStackTrace();
-        }
-
-        /*
          * TODO THIS WILL NEED TO BE UPDATED WITH ALL OF THE VALUES MAPPING
          * DTD_ITENTIFIER WITH THE EQUIVELLENT JAVA SQL TYPES
          */
@@ -97,12 +78,21 @@ public class WebEocDao {
         dataTypeMap.put("boolean", Types.BOOLEAN);
     }
 
-    public WebEocDao(String tableName)
+    public WebEocDao(String username, String password, String tableName)
             throws Exception {
+        this.conn = buildConnection(username, password);
         this.tableName = tableName;
         this.columnOrder = new String[getNumColumns()];
         initTableDataInfo();
         setGeomColumnIndicies();
+    }
+    
+    private Connection buildConnection(String username, String password) 
+    						throws SQLException, ClassNotFoundException {
+		Class.forName("org.postgresql.Driver");
+		return DriverManager.getConnection(CONNECTION_STRING, username, password);
+//		((org.postgresql.PGConnection) conn).addDataType("geometry", Class.forName("com.vividsolutions.jts.geom.Geometry"));
+//		((org.postgresql.PGConnection) conn).addDataType("box3d", Class.forName("org.postgis.PGbox3d"));
     }
 
     private int getNumColumns() throws Exception {
@@ -395,19 +385,5 @@ public class WebEocDao {
     
     private Exception tableNotFoundException(String tableName) {
     	return new Exception(String.format("ERROR: Table %s NOT FOUND", tableName));
-    }
-
-    /*
-     * TEST MAIN CLASS
-     */
-    public static void main(String[] args) {
-        File f = new File("C:\\Users\\pcoleman\\WebEOCexampleData.xml");
-        try {
-            FileInputStream fis = new FileInputStream(f);
-            WebEocDao webDAO = new WebEocDao("uc_san_diego_shelters_details");
-            webDAO.insertIntoEOCTable(IOUtils.toString(fis));
-        } catch (Exception e) {
-            System.out.println("FFFFFF");
-        }
     }
 }
