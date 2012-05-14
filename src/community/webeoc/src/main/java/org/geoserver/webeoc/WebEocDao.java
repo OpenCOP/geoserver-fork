@@ -30,6 +30,8 @@ import com.vividsolutions.jts.io.WKTReader;
 
 public class WebEocDao {
 
+	private static final int SRID = 4326;
+
 	private final String lastUpdatedDateColName;
     
     protected Connection conn;
@@ -188,8 +190,7 @@ public class WebEocDao {
             if (latColumnIndex != -1 && lonColumnIndex != -1
                     && valArray[latColumnIndex] != null
                     && valArray[lonColumnIndex] != null) {
-                g = point(valArray[latColumnIndex], valArray[lonColumnIndex],
-                        4326);
+                g = point(valArray[latColumnIndex], valArray[lonColumnIndex], SRID);
             }
 
             /*
@@ -344,7 +345,7 @@ public class WebEocDao {
         sb.append("INSERT INTO \"" + this.tableName + "\" VALUES(");
         boolean first = true;
         for (int i = 0; i < this.columnOrder.length; i++) {
-            String placeHolderVal = i == geomColumnIndex ? "ST_GeomFromText(?, 4326)" : "?";
+            String placeHolderVal = i == geomColumnIndex ? "ST_GeomFromText(?, " + SRID + ")" : "?";
             if (first) {
                 sb.append(placeHolderVal);
                 first = false;
