@@ -12,6 +12,12 @@ public class BasicCredentials {
 	private String password;
 	private String position;
 	
+	@Override
+	public String toString() {
+		return "BasicCredentials [username=" + username + ", password="
+				+ password + ", position=" + position + "]";
+	}
+
 	public BasicCredentials(String username, String password, String position) {
 		this.username = username;
 		this.password = password;

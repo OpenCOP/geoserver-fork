@@ -13,7 +13,7 @@ import org.geoserver.web.GeoServerApplication;
 import org.geoserver.web.GeoServerHomePage;
 import org.geoserver.web.GeoServerSecuredPage;
 import org.geoserver.web.data.webeoc.WebEOCConstants;
-import org.geoserver.webeoc.poller.Poller;
+import org.geoserver.webeoc.Poller;
 
 public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 
