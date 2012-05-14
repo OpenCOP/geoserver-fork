@@ -1,10 +1,9 @@
-package org.geoserver.webeoc.poller;
+package org.geoserver.webeoc;
 
 import java.util.Timer;
 import java.util.TimerTask;
 
 import org.geoserver.catalog.Catalog;
-import org.geoserver.webeoc.UpdateTask;
 
 public class Poller {
 	
