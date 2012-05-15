@@ -2,13 +2,18 @@ package org.geoserver.web.webeoc.poller;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import org.apache.wicket.markup.html.form.*;
 import java.util.List;
 import java.util.Map;
-import org.geoserver.catalog.LayerInfo;
+
+import org.apache.wicket.markup.html.form.CheckBox;
+import org.apache.wicket.markup.html.form.DropDownChoice;
+import org.apache.wicket.markup.html.form.Form;
+import org.apache.wicket.markup.html.form.SubmitLink;
+import org.apache.wicket.markup.html.form.TextField;
 import org.apache.wicket.markup.html.link.BookmarkablePageLink;
 import org.apache.wicket.model.PropertyModel;
 import org.geoserver.catalog.Catalog;
+import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.MetadataMap;
 import org.geoserver.config.GeoServerInfo;
 import org.geoserver.web.GeoServerApplication;
@@ -21,7 +26,7 @@ import org.geoserver.webeoc.Poller;
 import org.geoserver.webeoc.WebEocDao;
 
 public class ManageWebEocPollerPage extends GeoServerSecuredPage {
-
+	
     private Form form;
     private Form resetLayerForm;
     private DropDownChoice layerDropDown;
@@ -63,12 +68,6 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 
             @Override
             public void onSubmit() {
-                Poller poller = Poller.getInstance();
-                // Make sure the poller has a reference to the GeoServer Catalog
-                if (null == poller.getCatalog()) {
-                    poller.setCatalog(getCatalog());
-                }
-
                 GeoServerInfo global = GeoServerApplication.get().getGeoServer().getGlobal();
                 MetadataMap metadata = global.getMetadata();
 
@@ -91,10 +90,10 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
                 // Change the poller's status based on user input
                 if (!pollerEnabledModel) {
                     System.out.println("Stop this!");
-                    poller.stop();
+                    Poller.getInstance().stop();
                 } else {
                     System.out.println("Start this!");
-                    poller.start(Long.valueOf(pollerIntervalModel));
+                    Poller.getInstance().start(Long.valueOf(pollerIntervalModel));
                 }
 
                 // if you don't do this, the page won't refresh right
@@ -112,27 +111,27 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
          * Create the reset layer form
          */
         // Create the form
-        System.out.println("IN INITRESETLAYERFORM CODE");
+//        System.out.println("IN INITRESETLAYERFORM CODE");
         add(resetLayerForm = new Form("resetPollerForm"));
 
         Catalog catalog = GeoServerApplication.get().getCatalog();
         List<LayerInfo> layerList = catalog.getLayers();
-        for (LayerInfo l : layerList) {
-            System.out.println("FOUND THESE LAYER NAMES " + l.getName());
-        }
+//        for (LayerInfo l : layerList) {
+//            System.out.println("FOUND THESE LAYER NAMES " + l.getName());
+//        }
         ArrayList<String> webEocLayers = new ArrayList<String>();
 
         /*
          * prune out layers that aren't web eoc layers
          */
         for (LayerInfo l : layerList) {
-            System.out.println("FOUND TYPE " + l.getResource().getStore().getType());
+//            System.out.println("FOUND TYPE " + l.getResource().getStore().getType());
             if (WebEOCConstants.WEBEOC_DATASTORE_NAME.equals(l.getResource().getStore().getType())) {
                 webEocLayers.add(l.getName());
             }
         }
 
-        System.out.println("THESE LOOK LIKE WEBEOC LAYERS");
+//        System.out.println("THESE LOOK LIKE WEBEOC LAYERS");
         for (String s : webEocLayers) {
             System.out.println(s);
         }

@@ -7,6 +7,10 @@
      <property name="nameKey" value="category.webeoc"/>
      <property name="order" value="400"/>
   </bean> 
+  
+  <bean id="poller" class="org.geoserver.webeoc.Poller" singleton="true">
+  	<constructor-arg ref="geoServer" />
+  </bean>
     
   <bean id="createWebEOCLayerPage" class="org.geoserver.web.MenuPageInfo">
     <property name="id" value="createWebEOCLayerPage"/>
