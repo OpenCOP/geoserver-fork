@@ -42,18 +42,18 @@ public class Poller {
 			throw new Exception("Poller can only be instantiated once.");
 		}
 
-		this.instance = this;
+		instance = this;
 		this.catalog = geoserver.getCatalog();
-		this.intervalMs = getPollingIntervalMs(geoserver);
+		this.intervalMs = getPollingIntervalMsSetting(geoserver);
 
 		System.out.printf("The polling interval is %s\n", intervalMs);
 
-		if (isPollingEnabled(geoserver)) {
+		if (isPollingEnabledSetting(geoserver)) {
 			start(intervalMs);
 		}
 	}
 
-	private boolean isPollingEnabled(GeoServer geoserver) {
+	private boolean isPollingEnabledSetting(GeoServer geoserver) {
 		Serializable enabled = geoserver.getGlobal().getMetadata()
 				.get(WebEOCConstants.WEBEOC_POLLING_ENABLED_KEY);
 		if (enabled == null) {
@@ -68,7 +68,7 @@ public class Poller {
 	/**
 	 * Retrieve the polling interval from geoserver's xml files.
 	 */
-	private int getPollingIntervalMs(GeoServer geoserver) {
+	private int getPollingIntervalMsSetting(GeoServer geoserver) {
 		try {
 			String pollingIntervalStr = geoserver.getGlobal().getMetadata()
 					.get(WebEOCConstants.WEBEOC_POLLING_INTERVAL_KEY).toString();
@@ -108,8 +108,15 @@ public class Poller {
 	}
 
 	public void pollNow() {
-		stop();
-		start(intervalMs);
+		// restart if running
+		if (isRunning()) {
+			stop();
+			start(intervalMs);
+		}
+		// run once if not running
+		else {
+			UpdateTask.updateWebEocTables(catalog);
+		}
 	}
 
 	public boolean isRunning() {

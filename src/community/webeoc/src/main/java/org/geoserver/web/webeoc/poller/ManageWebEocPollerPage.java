@@ -58,42 +58,47 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 
 		// create the save, reset and cancel buttons
 		form.add(new BookmarkablePageLink("cancel", GeoServerHomePage.class));
-		form.add(new BookmarkablePageLink("reset", GeoServerHomePage.class));
+//		form.add(new BookmarkablePageLink("reset", GeoServerHomePage.class));
 
-		SubmitLink saveLink = new SubmitLink("save", form) {
-
-			@Override
-			public void onSubmit() {
-				GeoServerInfo global = GeoServerApplication.get().getGeoServer().getGlobal();
-				MetadataMap metadata = global.getMetadata();
-
-				long newIntervalMs = extractPollerIntervalMsFromModel(pollerIntervalModelMins,
-						getCurrentSettingsIntervalMs());
-				metadata.put(WebEOCConstants.WEBEOC_POLLING_INTERVAL_KEY,
-						Long.toString(newIntervalMs));
-
-				// Change the poller's status based on user input
-				if (pollerEnabledModel) {
-					System.out.println("Start this!");
-					metadata.put(WebEOCConstants.WEBEOC_POLLING_ENABLED_KEY, true);
-					Poller.getInstance().start(newIntervalMs);
-				} else {
-					System.out.println("Stop this!");
-					metadata.put(WebEOCConstants.WEBEOC_POLLING_ENABLED_KEY, false);
-					Poller.getInstance().stop();
-				}
-
-				// persist the global settings
-				GeoServerApplication.get().getGeoServer().save(global);
-
-				// if you don't do this, the page won't refresh right
-				setResponsePage(new ManageWebEocPollerPage());
-			}
-		};
+		SubmitLink saveLink = new SaveLink("save", form);
 		form.add(saveLink);
 		form.setDefaultButton(saveLink);
 
 		initResetLayerForm();
+	}
+
+	class SaveLink extends SubmitLink {
+
+		public SaveLink(String id, Form form) {
+			super(id, form);
+		}
+
+		@Override
+		public void onSubmit() {
+			GeoServerInfo global = GeoServerApplication.get().getGeoServer().getGlobal();
+			MetadataMap metadata = global.getMetadata();
+
+			long newIntervalMs = extractPollerIntervalMsFromModel(pollerIntervalModelMins,
+					getCurrentSettingsIntervalMs());
+			metadata.put(WebEOCConstants.WEBEOC_POLLING_INTERVAL_KEY, Long.toString(newIntervalMs));
+
+			// Change the poller's status based on user input
+			if (pollerEnabledModel) {
+				System.out.println("Start this!");
+				metadata.put(WebEOCConstants.WEBEOC_POLLING_ENABLED_KEY, true);
+				Poller.getInstance().start(newIntervalMs);
+			} else {
+				System.out.println("Stop this!");
+				metadata.put(WebEOCConstants.WEBEOC_POLLING_ENABLED_KEY, false);
+				Poller.getInstance().stop();
+			}
+
+			// persist the global settings
+			GeoServerApplication.get().getGeoServer().save(global);
+
+			// if you don't do this, the page won't refresh right
+			setResponsePage(new ManageWebEocPollerPage());
+		}
 	}
 
 	private String getPollerIntervalModelMins() {
@@ -124,9 +129,6 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 	}
 
 	private void initResetLayerForm() {
-		/*
-		 * Create the reset layer form
-		 */
 		// Create the form
 		// System.out.println("IN INITRESETLAYERFORM CODE");
 		add(resetLayerForm = new Form("resetPollerForm"));

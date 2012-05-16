@@ -1,15 +1,15 @@
 <html xmlns:wicket="http://wicket.apache.org/">
     <body>
     <wicket:extend>
-        <div> 
+        <div>
             <form wicket:id="form">
                 <ul>
-                    <li>  
+                    <li>
                         <fieldset>
                             <legend><span><wicket:message key="title">Poller Manager</wicket:message></span></legend>
                             <ul>
                                 <li>
-                                    <label for="pollingInterval"><wicket:message key="pollingInterval">Polling Interval (ms)</wicket:message></label> 
+                                    <label for="pollingInterval"><wicket:message key="pollingInterval">Polling Interval (ms)</wicket:message></label>
                                     <input wicket:id="pollingInterval" class="text" type="text" />
                                 </li>
                                 <li>
@@ -21,12 +21,13 @@
                     </li>
                 </ul>
                 <div class="button-group selfclear">
-                    <a href="#" wicket:id="save"><wicket:message key="save">Save and Poll Immediately</wicket:message></a>
+                    <a href="#" wicket:id="save"><wicket:message key="save">Save</wicket:message></a>
+                    
                     <a href="#" wicket:id="cancel"><wicket:message key="cancel">Cancel</wicket:message></a>
                 </div>
             </form>
         </div><br/>
-        <div>      
+        <div>
             <form wicket:id="resetPollerForm">
                 <ul>
                     <li>
