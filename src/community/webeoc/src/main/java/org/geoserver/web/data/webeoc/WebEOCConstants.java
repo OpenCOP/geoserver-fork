@@ -24,9 +24,10 @@ public class WebEOCConstants {
   public static final String WEBEOC_LATFIELD_KEY = "webeoc.latField";
   public static final String WEBEOC_LASTUPDATEDFIELD_KEY = "webeoc.lastUpdatedField";
 
-  public static final String WEBEOC_DEFAULT_GEOM_NAME = "the_geom";
-
   public static final int TABLE_NAME_MAXLENGTH = 63;
   
   public static final String DEFAULT_CRS = "EPSG:4326";
+  public static final String DEFAULT_STYLE_NAME = "point";
+  public static final String WEBEOC_DEFAULT_GEOM_NAME = "the_geom";
+  
 }

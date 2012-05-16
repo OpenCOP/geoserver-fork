@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.xml.ws.WebServiceException;
 import org.apache.wicket.Component;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.form.AjaxFormComponentUpdatingBehavior;
@@ -32,6 +33,7 @@ import org.apache.wicket.model.AbstractReadOnlyModel;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.Model;
 import org.apache.wicket.model.PropertyModel;
+import org.apache.wicket.validation.validator.PatternValidator;
 import org.apache.wicket.validation.validator.StringValidator;
 import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.CatalogBuilder;
@@ -87,14 +89,17 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
   private final DropDownChoice incidents;
   private final DropDownChoice boards;
   private final DropDownChoice views;
-  private final TextField<String> layerName;
-  private final TextField<String> layerTitle;
+  private final TextField<String> layerNameField;
+  private final TextField<String> layerTitleField;
   private final Model<StyleInfo> defaultStyleModel;
   private final WebEOCCredentialsSerializedWrapper credentials;
   private final WebEOCLayerInfo webeocLayerInfo;
   WebEOCAttributesProvider attributesProvider;
   GeoServerTablePanel<AttributeDescription> attributeTable;
   private String wsdlUrl;
+
+  private String layerName;
+  private String layerTitle;
 
   public CreateWebEOCLayerPage() {
     credentials = new WebEOCCredentialsSerializedWrapper();
@@ -110,18 +115,20 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
     form.add(views = getViewsDropDown());
 
     // create the name field
-    form.add(layerName = new TextField<String>("layerName", new Model<String>()));
-    layerName.add(StringValidator.maximumLength(WebEOCConstants.TABLE_NAME_MAXLENGTH));
-    layerName.setOutputMarkupId(true);
-    layerName.setRequired(true);
+    form.add(layerNameField = new TextField<String>("layerName", new PropertyModel<String>(this, "layerName")));
+    layerNameField.add(StringValidator.maximumLength(WebEOCConstants.TABLE_NAME_MAXLENGTH));
+    layerNameField.add(new PatternValidator("[A-Za-z_]\\w*"));
+    layerNameField.setOutputMarkupId(true);
+    layerNameField.setRequired(true);
     
     // create the title field
-    form.add(layerTitle = new TextField<String>("layerTitle", new Model<String>()));
-    layerTitle.setOutputMarkupId(true);
-    layerTitle.setRequired(true);
+    form.add(layerTitleField = new TextField<String>("layerTitle", new PropertyModel<String>(this, "layerTitle")));
+    layerTitleField.setOutputMarkupId(true);
+    layerTitleField.setRequired(true);
 
     // Add the style picker elements
     defaultStyleModel = new Model<StyleInfo>();
+    defaultStyleModel.setObject(getCatalog().getStyleByName(WebEOCConstants.DEFAULT_STYLE_NAME));
     addStylePicker(form);
 
     // Add the remove selected attributes link
@@ -200,7 +207,6 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
   }
 
   private void submit() {
-    String layername = layerName.getDefaultModelObjectAsString();
     Catalog catalog = getCatalog();
 
     // create table
@@ -211,9 +217,9 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
       dsInfo = catalog.getDataStore(((StoreInfo) stores.getDefaultModelObject()).getId());
       ds = (DataStore) dsInfo.getDataStore(null);
       // Check if the layername already exists in the datastore
-      if (Arrays.asList(ds.getTypeNames()).contains(layername)) {
+      if (Arrays.asList(ds.getTypeNames()).contains(layerName)) {
         error(new ParamResourceModel("duplicateTypeName", this, dsInfo.getName(),
-                layername).getString());
+                layerName).getString());
         return;
       }
     } catch (Exception e) {
@@ -233,9 +239,9 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
       geom.setName(WebEOCConstants.WEBEOC_DEFAULT_GEOM_NAME);
       List<AttributeDescription> attrs = attributesProvider.getAttributes();
       attrs.add(geom);
-      featureType = buildFeatureType(attrs, layername);
+      featureType = buildFeatureType(attrs, layerName);
     } else {
-      featureType = buildFeatureType(attributesProvider.getAttributes(), layername);
+      featureType = buildFeatureType(attributesProvider.getAttributes(), layerName);
     }
       
     try {
@@ -252,7 +258,7 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
     // Build the geoserver feature type object
     FeatureTypeInfo fti;
     try {
-      fti = builder.buildFeatureType(getFeatureSource(ds, layername));
+      fti = builder.buildFeatureType(getFeatureSource(ds, layerName));
       // Set the bounding boxes to makes things happy
       ReferencedEnvelope world = new ReferencedEnvelope(-180, 180, -90, 90, WGS84);
       fti.setSRS(WebEOCConstants.DEFAULT_CRS);
@@ -261,8 +267,8 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
       fti.setLatLonBoundingBox(world);
       // Build the geoserver layer object
       LayerInfo layerInfo = builder.buildLayer(fti);
-      layerInfo.setName(layername);
-      layerInfo.getResource().setTitle(layerTitle.getDefaultModelObjectAsString());
+      layerInfo.setName(layerName);
+      layerInfo.getResource().setTitle(layerTitle);
       // Get the chosen style
       StyleInfo styleInfo = defaultStyleModel.getObject();
       // Set the default style for the layer
@@ -327,11 +333,21 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
         credentials.setPassword(connectionParameters.get(WebEOCConstants.WEBEOC_PASSWORD_KEY).toString());
         credentials.setPosition(connectionParameters.get(WebEOCConstants.WEBEOC_POSITION_KEY).toString());
 
+        // Set the incindent/board/view to null in case the user is going backwards
+        webeocLayerInfo.setIncident(null);
+        webeocLayerInfo.setBoard(null);
+        webeocLayerInfo.setView(null);
+        attributesProvider.removeAll(attributesProvider.getAttributes());
+
         // Get the WebEOC WSDL endpoint from the datastore object
         wsdlUrl = connectionParameters.get(WebEOCConstants.WEBEOC_WSDL_KEY).toString();
 
         if (target != null) {
           target.addComponent(incidents);
+          target.addComponent(boards);
+          target.addComponent(views);
+          target.addComponent(attributeTable);
+          target.addComponent(feedbackPanel);
         }
       }
     });
@@ -345,7 +361,12 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
         if (null == credentials || null == wsdlUrl || wsdlUrl.isEmpty()) {
           return Collections.EMPTY_LIST;
         }
-        return getIncidents();
+        try {
+          return getIncidents();
+        } catch (Exception e) {
+          error("Error getting incidents: " + e.getLocalizedMessage());
+          return Collections.EMPTY_LIST;
+        }
       }
     };
     DropDownChoice incidentsChoice = new DropDownChoice("incidents",
@@ -358,9 +379,17 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
       @Override
       protected void onUpdate(AjaxRequestTarget target) {
         credentials.setIncident(getDefaultModelObjectAsString());
+        
+        // Set the board/view to null in case the user is going backwards
+        webeocLayerInfo.setBoard(null);
+        webeocLayerInfo.setView(null);
+        attributesProvider.removeAll(attributesProvider.getAttributes());
 
         if (target != null) {
           target.addComponent(boards);
+          target.addComponent(views);
+          target.addComponent(attributeTable);
+          target.addComponent(feedbackPanel);
         }
       }
     });
@@ -371,10 +400,16 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
     final IModel boardChoiceModel = new AbstractReadOnlyModel() {
 
       public Object getObject() {
-        if (null == credentials || null == wsdlUrl || wsdlUrl.isEmpty()) {
+        if (null == credentials || null == wsdlUrl || wsdlUrl.isEmpty() 
+                || null == webeocLayerInfo.getIncident()) {
           return Collections.EMPTY_LIST;
         }
-        return getBoards();
+        try {
+          return getBoards();
+        } catch (Exception e) {
+          error("Error getting boards: " + e.getLocalizedMessage());
+          return Collections.EMPTY_LIST;
+        }
       }
     };
     DropDownChoice boardsChoice = new DropDownChoice("boards",
@@ -386,8 +421,14 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
 
       @Override
       protected void onUpdate(AjaxRequestTarget target) {
+        // Set the view to null in case the user is going backwards
+        webeocLayerInfo.setView(null);
+        attributesProvider.removeAll(attributesProvider.getAttributes());
+        
         if (target != null) {
           target.addComponent(views);
+          target.addComponent(attributeTable);
+          target.addComponent(feedbackPanel);
         }
       }
     });
@@ -398,10 +439,17 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
     final IModel viewChoiceModel = new AbstractReadOnlyModel() {
 
       public Object getObject() {
-        if (null == credentials || null == wsdlUrl || wsdlUrl.isEmpty()) {
+        if (null == credentials || null == wsdlUrl || wsdlUrl.isEmpty() 
+                || null == webeocLayerInfo.getIncident()
+                || null == webeocLayerInfo.getBoard()) {
           return Collections.EMPTY_LIST;
         }
-        return getViews();
+        try {
+          return getViews();
+        } catch (Exception e) {
+          error("Error getting views: " + e.getLocalizedMessage());
+          return Collections.EMPTY_LIST;
+        }
       }
     };
     DropDownChoice viewsChoice = new DropDownChoice("views",
@@ -413,8 +461,21 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
 
       @Override
       protected void onUpdate(AjaxRequestTarget target) {
+        if (null == credentials || null == wsdlUrl || wsdlUrl.isEmpty() 
+                || null == webeocLayerInfo.getIncident()
+                || null == webeocLayerInfo.getBoard()
+                || null == webeocLayerInfo.getView()) {
+          return; 
+        }
         // Create the column datatype editor
-        List<String> fields = getViewFields();
+        List<String> fields = Collections.EMPTY_LIST;
+        try {
+          fields = getViewFields();
+        } catch (Exception e) {
+          error("Error getting fields: " + e.getLocalizedMessage());
+          // continue on with an empty list to clear out old fields if the
+          // user is changing views and an error occurred.
+        }
         attributesProvider.removeAll(attributesProvider.getAttributes());
         attributeTable.clearSelection();
         for (String field : fields) {
@@ -424,13 +485,16 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
         }
         attributeTable.setItemsPerPage(attributesProvider.size());
 
-        ((Model)layerName.getDefaultModel()).setObject(getDefaultLayerName());
-        ((Model)layerTitle.getDefaultModel()).setObject(getDefaultLayerTitle());
+        // Set the layerName and layerTitle to appropriate defaults based on
+        // the incident-board-view combination
+        layerName = getDefaultLayerName();
+        layerTitle = getDefaultLayerTitle();
         
         if (target != null) {
           target.addComponent(attributeTable);
-          target.addComponent(layerName);
-          target.addComponent(layerTitle);
+          target.addComponent(layerNameField);
+          target.addComponent(layerTitleField);
+          target.addComponent(feedbackPanel);
         }
       }
     });
@@ -476,7 +540,7 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
     name.append(webeocLayerInfo.getView());
     
     String nameString = name.toString()
-            .replaceAll("[^A-Za-z0-9_\\s+]", "") // remove all weird characters
+            .replaceAll("[^\\w\\s+]", "") // remove all weird characters
             .replaceAll("\\s+", "_") // change whitespace to underscore
             .toLowerCase();
     
@@ -499,30 +563,34 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
   }
 
   /*  WebEOC API calls  */
-  private APISoap getWebEOC() {
+  private APISoap getWebEOC() throws MalformedURLException {
     APISoap webEOC = null;
     try {
       webEOC = (new API(new URL(wsdlUrl))).getAPISoap();
     } catch (MalformedURLException e) {
       error("Bad WebEOC URL specified in datastore.");
+      throw e;
+    } catch (WebServiceException e) {
+      error("Error connecting to WebEOC: " + e.getLocalizedMessage());
+      throw e;
     }
     return webEOC;
   }
 
-  private List<String> getIncidents() {
+  private List<String> getIncidents() throws MalformedURLException {
     return getWebEOC().getIncidents(credentials.getWebEOCCredentials()).getString();
   }
 
-  private List<String> getBoards() {
+  private List<String> getBoards() throws MalformedURLException {
     return getWebEOC().getBoardNames(credentials.getWebEOCCredentials()).getString();
   }
 
-  private List<String> getViews() {
+  private List<String> getViews() throws MalformedURLException {
     return getWebEOC().getDisplayViews(credentials.getWebEOCCredentials(),
             webeocLayerInfo.getBoard()).getString();
   }
 
-  private List<String> getViewFields() {
+  private List<String> getViewFields() throws MalformedURLException {
     return getWebEOC().getViewFields(credentials.getWebEOCCredentials(),
             webeocLayerInfo.getBoard(),
             webeocLayerInfo.getView()).getString();
