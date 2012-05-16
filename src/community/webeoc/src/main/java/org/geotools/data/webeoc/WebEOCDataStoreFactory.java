@@ -18,8 +18,6 @@ public class WebEOCDataStoreFactory extends PostgisNGDataStoreFactory {
     public static final Param WEBEOC_PASSWORD = new Param(WebEOCConstants.WEBEOC_PASSWORD_KEY, 
             String.class, "WebEOC Password", true, null, 
             Collections.singletonMap(Parameter.IS_PASSWORD, Boolean.TRUE));
-    public static final Param WEBEOC_POLLING_INTERVAL = new Param(WebEOCConstants.WEBEOC_POLLING_INTERVAL_KEY, 
-            Integer.class, "WebEOC Polling Interval", true, WebEOCConstants.WEBEOC_POLLING_INTERVAL_DEFAULT);
 
     public WebEOCDataStoreFactory() {
         super();
@@ -31,7 +29,6 @@ public class WebEOCDataStoreFactory extends PostgisNGDataStoreFactory {
         parameters.put(WEBEOC_POSITION.key, WEBEOC_POSITION);
         parameters.put(WEBEOC_USER.key, WEBEOC_USER);
         parameters.put(WEBEOC_PASSWORD.key, WEBEOC_PASSWORD);
-        parameters.put(WEBEOC_POLLING_INTERVAL.key, WEBEOC_POLLING_INTERVAL);
         super.setupParameters(parameters);
     }
 
