@@ -1,32 +1,52 @@
 <html xmlns:wicket="http://wicket.apache.org/">
-  <body>
-  <wicket:extend>
-    <div> 
-      <form wicket:id="form">
-        <ul>
-          <li>  
-            <fieldset>
-              <legend><span><wicket:message key="title">Poller Manager</wicket:message></span></legend>
-              <ul>
-                <li>
-                  <label for="pollingInterval"><wicket:message key="pollingInterval">Polling Interval (ms)</wicket:message></label> 
-                  <input wicket:id="pollingInterval" class="text" type="text" />
-                </li>
-              <li>
-                <input class="field checkbox" type="checkbox" wicket:id="pollerEnabled"></input>
-                <label for="pollerEnabled" class="choice"><wicket:message key="pollerEnabled">Poller Enabled</wicket:message></label>
-              </li>
-              </ul>
-            </fieldset>
-          </li>
-        </ul>
-        <div class="button-group selfclear">
-          <a href="#" wicket:id="save"><wicket:message key="save">Save and Poll Immediately</wicket:message></a>
-          <a href="#" wicket:id="cancel"><wicket:message key="cancel">Cancel</wicket:message></a>
+    <body>
+    <wicket:extend>
+        <div>
+            <form wicket:id="form">
+                <ul>
+                    <li>
+                        <fieldset style="padding:0; margin: 0;">
+                            <legend><span><wicket:message key="title">Poller Manager</wicket:message></span></legend>
+                            <ul>
+                                <li>
+                                    <label for="pollingInterval"><wicket:message key="pollingInterval">Polling Interval (ms)</wicket:message></label>
+                                    <input wicket:id="pollingInterval" class="text" type="text" />
+                                </li>
+                                <li>
+                                    <input class="field checkbox" type="checkbox" wicket:id="pollerEnabled"></input>
+                                    <label for="pollerEnabled" class="choice"><wicket:message key="pollerEnabled">Poller Enabled</wicket:message></label>
+                                </li>
+                            </ul>
+                        </fieldset>
+                    </li>
+                </ul>
+                <div class="button-group selfclear" style="padding-bottom: 4em;">
+                    <a href="#" wicket:id="save"><wicket:message key="save">Save</wicket:message></a>
+                    <a href="#" wicket:id="pollnow"><wicket:message key="pollnow">Poll Now</wicket:message></a>
+                    <a href="#" wicket:id="cancel"><wicket:message key="cancel">Cancel</wicket:message></a>
+                </div>
+            </form>
+        </div><br/>
+        <div>
+            <form wicket:id="resetPollerForm">
+                <ul>
+                    <li>
+                        <fieldset>
+                            <legend><span><wicket:message key="resetFormTitle">Reset Layer</wicket:message></span></legend>
+                            <ul>
+                                <li>
+                                    <label for="layersDropDown"><wicket:message key="layersDropDown">WebEOC Layer</wicket:message></label>
+                                    <select wicket:id="layersDropDown"></select>
+                                </li>
+                            </ul>
+                        </fieldset>
+                    </li>
+                </ul>
+                <div class="button-group selfclear">
+                    <a href="#" wicket:id="reset"><wicket:message key="resetFormTitle">Reset Layer</wicket:message></a>
+                </div>
+            </form>
         </div>
-      </form>
-    </div> 
-
-  </wicket:extend>
+    </wicket:extend>
 </body>
 </html>
