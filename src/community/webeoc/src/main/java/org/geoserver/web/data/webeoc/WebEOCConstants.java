@@ -32,4 +32,7 @@ public class WebEOCConstants {
   public static final String WEBEOC_DEFAULT_LATITUDENAME = "latitude";
   public static final String WEBEOC_DEFAULT_LONGITUDENAME = "longitude";
   public static final String WEBEOC_DEFAULT_LASTUPDATEDNAME="entrydate";
+  
+  public static final String DEFAULT_STYLE_NAME = "point";
+  public static final String WEBEOC_DEFAULT_GEOM_NAME = "the_geom";
 }
