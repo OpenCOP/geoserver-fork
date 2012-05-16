@@ -30,4 +30,8 @@ public class WebEOCConstants {
   public static final int TABLE_NAME_MAXLENGTH = 63;
   
   public static final String DEFAULT_CRS = "EPSG:4326";
+  
+  public static final String WEBEOC_DEFAULT_LATITUDENAME = "latitude";
+  public static final String WEBEOC_DEFAULT_LONGITUDENAME = "longitude";
+  public static final String WEBEOC_DEFAULT_LASTUPDATEDNAME="entrydate";
 }
