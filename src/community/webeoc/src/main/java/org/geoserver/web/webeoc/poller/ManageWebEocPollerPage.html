@@ -5,7 +5,7 @@
             <form wicket:id="form">
                 <ul>
                     <li>
-                        <fieldset>
+                        <fieldset style="padding:0; margin: 0;">
                             <legend><span><wicket:message key="title">Poller Manager</wicket:message></span></legend>
                             <ul>
                                 <li>
@@ -20,9 +20,9 @@
                         </fieldset>
                     </li>
                 </ul>
-                <div class="button-group selfclear">
+                <div class="button-group selfclear" style="padding-bottom: 4em;">
                     <a href="#" wicket:id="save"><wicket:message key="save">Save</wicket:message></a>
-                    
+                    <a href="#" wicket:id="pollnow"><wicket:message key="pollnow">Poll Now</wicket:message></a>
                     <a href="#" wicket:id="cancel"><wicket:message key="cancel">Cancel</wicket:message></a>
                 </div>
             </form>

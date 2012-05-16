@@ -58,13 +58,30 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 
 		// create the save, reset and cancel buttons
 		form.add(new BookmarkablePageLink("cancel", GeoServerHomePage.class));
-//		form.add(new BookmarkablePageLink("reset", GeoServerHomePage.class));
+		// form.add(new BookmarkablePageLink("reset", GeoServerHomePage.class));
 
 		SubmitLink saveLink = new SaveLink("save", form);
 		form.add(saveLink);
 		form.setDefaultButton(saveLink);
 
+		form.add(new PollNowLink("pollnow", form));
+
 		initResetLayerForm();
+	}
+
+	private final class PollNowLink extends SaveLink {
+		
+		private PollNowLink(String id, Form form) {
+			super(id, form);
+		}
+
+		@Override
+		public void onSubmit() {
+			Poller.getInstance().pollNow();
+			
+			// refresh page
+			setResponsePage(new ManageWebEocPollerPage());
+		}
 	}
 
 	class SaveLink extends SubmitLink {
