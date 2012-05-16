@@ -27,202 +27,217 @@ import org.geoserver.webeoc.WebEocDao;
 
 public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 
-    private Form form;
-    private Form resetLayerForm;
-    private DropDownChoice layerDropDown;
-    private boolean pollerEnabledModel;
-    private String pollerIntervalModel;
-    public String selectedResetLayer = "NOTHING";
-    private static final long DEFAULT_POLLING_INTERVAL_MILLISECONDS = 5 * 60 * 1000L;
+	private Form form;
+	private Form resetLayerForm;
+	private DropDownChoice layerDropDown;
+	private boolean pollerEnabledModel;
+	private String pollerIntervalModelMins;
+	public String selectedResetLayer = "NOTHING";
 
-    public ManageWebEocPollerPage() {
+	public ManageWebEocPollerPage() {
 
-        // Set the model for whether or not the poller is enabled
-        pollerEnabledModel = Poller.getInstance().isRunning();
-        // Get the poller interval from global settings, gotta be null-safe!
-        Serializable temp = GeoServerApplication.get().getGeoServer().getGlobal().getMetadata().get(WebEOCConstants.WEBEOC_POLLING_INTERVAL_KEY);
-        if (null != temp) {
-            /*
-             * Convert the value back into minutes for the user
-             */
-            try {
-                long tempLong = Long.parseLong(temp.toString());
-                float tempFloat = tempLong / (60 * 1000f);
-                pollerIntervalModel = Float.toString(tempFloat);
-            } catch (Exception e) {
-                e.printStackTrace();
-                pollerIntervalModel = Long.toString(DEFAULT_POLLING_INTERVAL_MILLISECONDS / (60 * 1000));
-            }
-        }
+		// assume that the enabled setting and whether the poller is running are
+		// synced, and believe the poller
+		pollerEnabledModel = Poller.getInstance().isRunning();
 
-        Serializable pollerEnabledValue = GeoServerApplication.get().getGeoServer().getGlobal().getMetadata().get(WebEOCConstants.WEBEOC_POLLING_ENABLED_KEY);
-        if (pollerEnabledValue != null) {
-            pollerEnabledModel = Boolean.parseBoolean(pollerEnabledValue.toString());
-        }
+		pollerIntervalModelMins = getPollerIntervalModelMins();
 
-        // Create the form
-        add(form = new Form("form"));
+		// Create the form
+		add(form = new Form("form"));
 
-        // Create the text field for setting the poller interval
-        TextField<String> pollingInterval = new TextField<String>("pollingInterval",
-                new PropertyModel<String>(this, "pollerIntervalModel"));
-        pollingInterval.setOutputMarkupId(true);
-        form.add(pollingInterval);
+		// Create the text field for setting the poller interval
+		TextField<String> pollingInterval = new TextField<String>("pollingInterval",
+				new PropertyModel<String>(this, "pollerIntervalModelMins"));
+		pollingInterval.setOutputMarkupId(true);
+		form.add(pollingInterval);
 
+		// Create the checkbox for enabling/disabling the poller
+		final CheckBox pollerEnabled = new CheckBox("pollerEnabled", new PropertyModel<Boolean>(
+				this, "pollerEnabledModel"));
+		form.add(pollerEnabled);
 
+		// create the save, reset and cancel buttons
+		form.add(new BookmarkablePageLink("cancel", GeoServerHomePage.class));
+		form.add(new BookmarkablePageLink("reset", GeoServerHomePage.class));
 
-        // Create the checkbox for enabling/disabling the poller
-        final CheckBox pollerEnabled = new CheckBox("pollerEnabled",
-                new PropertyModel<Boolean>(this, "pollerEnabledModel"));
-        form.add(pollerEnabled);
+		SubmitLink saveLink = new SubmitLink("save", form) {
 
-        // create the save, reset and cancel buttons
-        form.add(new BookmarkablePageLink("cancel", GeoServerHomePage.class));
-        form.add(new BookmarkablePageLink("reset", GeoServerHomePage.class));
+			@Override
+			public void onSubmit() {
+				GeoServerInfo global = GeoServerApplication.get().getGeoServer().getGlobal();
+				MetadataMap metadata = global.getMetadata();
 
+				long newIntervalMs = extractPollerIntervalMsFromModel(pollerIntervalModelMins,
+						getCurrentSettingsIntervalMs());
+				metadata.put(WebEOCConstants.WEBEOC_POLLING_INTERVAL_KEY,
+						Long.toString(newIntervalMs));
 
+				// Change the poller's status based on user input
+				if (pollerEnabledModel) {
+					System.out.println("Start this!");
+					metadata.put(WebEOCConstants.WEBEOC_POLLING_ENABLED_KEY, true);
+					Poller.getInstance().start(newIntervalMs);
+				} else {
+					System.out.println("Stop this!");
+					metadata.put(WebEOCConstants.WEBEOC_POLLING_ENABLED_KEY, false);
+					Poller.getInstance().stop();
+				}
 
-        SubmitLink saveLink = new SubmitLink("save", form) {
+				// persist the global settings
+				GeoServerApplication.get().getGeoServer().save(global);
 
-            @Override
-            public void onSubmit() {
-                GeoServerInfo global = GeoServerApplication.get().getGeoServer().getGlobal();
-                MetadataMap metadata = global.getMetadata();
+				// if you don't do this, the page won't refresh right
+				setResponsePage(new ManageWebEocPollerPage());
+			}
+		};
+		form.add(saveLink);
+		form.setDefaultButton(saveLink);
 
-                // Gotta be null-safe!
-                Serializable temp = metadata.get(WebEOCConstants.WEBEOC_POLLING_INTERVAL_KEY);
-                Long oldInterval = DEFAULT_POLLING_INTERVAL_MILLISECONDS; /*
-                 * initialize oldInterval to 5 minutes worth of milliseconds
-                 * incase it isn't set
-                 */
-                if (null != temp) {
-                    oldInterval = Long.parseLong(temp.toString());
-                } else {
-                    /*
-                     * if it was null that means there wasn't anything set for
-                     * the polling interval, that is silly! we'll put one in
-                     * right now!
-                     */
-                    metadata.put(WebEOCConstants.WEBEOC_POLLING_INTERVAL_KEY, DEFAULT_POLLING_INTERVAL_MILLISECONDS);
-                }
+		initResetLayerForm();
+	}
 
-                float pollerIntervalFloat = -1;
-                try {
-                    pollerIntervalFloat = Float.parseFloat(pollerIntervalModel);
+	private String getPollerIntervalModelMins() {
 
-                    /*
-                     * Convert from minutes to milliseconds
-                     */
-                    pollerIntervalFloat = pollerIntervalFloat * 60 * 1000;
+		Serializable intervalMsFromSettings = GeoServerApplication.get().getGeoServer().getGlobal()
+				.getMetadata().get(WebEOCConstants.WEBEOC_POLLING_INTERVAL_KEY);
 
-                    /*
-                     * Check to make sure pollerIntervalModel is greater than 5
-                     * minutes, if it isn't, we will silently set it to 5
-                     * minutes
-                     */
-                    if (pollerIntervalFloat < DEFAULT_POLLING_INTERVAL_MILLISECONDS) {
-                        pollerIntervalFloat = DEFAULT_POLLING_INTERVAL_MILLISECONDS;
-                    }
+		if (intervalMsFromSettings == null) {
+			return defaultPollingIntervalMins();
+		}
 
-                    metadata.put(WebEOCConstants.WEBEOC_POLLING_INTERVAL_KEY, Long.toString((long) Math.round(pollerIntervalFloat)));
+		// Convert the value back into minutes for the user
+		try {
+			long intervalMs = Long.parseLong(intervalMsFromSettings.toString());
+			float intervalMins = intervalMs / (60 * 1000f);
+			return Float.toString(intervalMins);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return defaultPollingIntervalMins();
+		}
+	}
 
-                } catch (NumberFormatException e) {
-                    System.out.println("User entered in an invalid polling interval, " + pollerIntervalModel + " " + e.getMessage());
-                }
+	/**
+	 * Grab a default polling interval from our hardcoded defaults.
+	 */
+	private String defaultPollingIntervalMins() {
+		return Long.toString((long) WebEOCConstants.WEBEOC_POLLING_INTERVAL_DEFAULT / (60 * 1000));
+	}
 
+	private void initResetLayerForm() {
+		/*
+		 * Create the reset layer form
+		 */
+		// Create the form
+		// System.out.println("IN INITRESETLAYERFORM CODE");
+		add(resetLayerForm = new Form("resetPollerForm"));
 
-                // Change the poller's status based on user input
-                if (!pollerEnabledModel) {
-                    System.out.println("Stop this!");
-                    metadata.put(WebEOCConstants.WEBEOC_POLLING_ENABLED_KEY, false);
-                    Poller.getInstance().stop();
-                } else {
-                    System.out.println("Start this!");
-                    metadata.put(WebEOCConstants.WEBEOC_POLLING_ENABLED_KEY, true);
-                    /*
-                     * If the pollerIntervalLong was set incorrectly by the user
-                     * (and is therefore still set to -1) we will use the
-                     * previously recorded value, otherwise we will use the new
-                     * value)
-                     */
-                    Poller.getInstance().start(pollerIntervalFloat == -1 ? oldInterval : (long) Math.round(pollerIntervalFloat));
-                }
+		Catalog catalog = GeoServerApplication.get().getCatalog();
+		List<LayerInfo> layerList = catalog.getLayers();
+		// for (LayerInfo l : layerList) {
+		// System.out.println("FOUND THESE LAYER NAMES " + l.getName());
+		// }
+		ArrayList<String> webEocLayers = new ArrayList<String>();
 
-                // persist the global settings
-                GeoServerApplication.get().getGeoServer().save(global);
+		/*
+		 * prune out layers that aren't web eoc layers
+		 */
+		for (LayerInfo l : layerList) {
+			// System.out.println("FOUND TYPE " +
+			// l.getResource().getStore().getType());
+			if (WebEOCConstants.WEBEOC_DATASTORE_NAME.equals(l.getResource().getStore().getType())) {
+				webEocLayers.add(l.getName());
+			}
+		}
 
+		// System.out.println("THESE LOOK LIKE WEBEOC LAYERS");
+		for (String s : webEocLayers) {
+			System.out.println(s);
+		}
 
-                // if you don't do this, the page won't refresh right
-                setResponsePage(new ManageWebEocPollerPage());
-            }
-        };
-        form.add(saveLink);
-        form.setDefaultButton(saveLink);
+		layerDropDown = new DropDownChoice("layersDropDown", new PropertyModel(this,
+				"selectedResetLayer"), webEocLayers);
+		resetLayerForm.add(layerDropDown);
+		SubmitLink resetLink = new SubmitLink("reset", resetLayerForm) {
 
-        initResetLayerForm();
-    }
+			@Override
+			public void onSubmit() {
+				String val = selectedResetLayer;
+				if (val == null) {
+					return;
+				}
+				Catalog catalog = GeoServerApplication.get().getCatalog();
+				LayerInfo layer = catalog.getLayerByName(val);
+				if (layer == null) {
+					return;
+				}
+				Map<String, Serializable> m = layer.getResource().getStore()
+						.getConnectionParameters();
 
-    private void initResetLayerForm() {
-        /*
-         * Create the reset layer form
-         */
-        // Create the form
-//        System.out.println("IN INITRESETLAYERFORM CODE");
-        add(resetLayerForm = new Form("resetPollerForm"));
+				String tableName = layer.getResource().getNativeName() == null ? val : layer
+						.getResource().getNativeName();
+				try {
+					WebEOCLayerInfo webInfo = new WebEOCLayerInfoImpl();
+					webInfo.set(layer.getResource().getMetadata());
+					WebEocDao webDAO = new WebEocDao(m, webInfo, tableName);
+					webDAO.delTableContents();
+					Poller.getInstance().pollNow();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		};
 
-        Catalog catalog = GeoServerApplication.get().getCatalog();
-        List<LayerInfo> layerList = catalog.getLayers();
-//        for (LayerInfo l : layerList) {
-//            System.out.println("FOUND THESE LAYER NAMES " + l.getName());
-//        }
-        ArrayList<String> webEocLayers = new ArrayList<String>();
+		resetLayerForm.add(resetLink);
+		resetLayerForm.setDefaultButton(resetLink);
+	}
 
-        /*
-         * prune out layers that aren't web eoc layers
-         */
-        for (LayerInfo l : layerList) {
-//            System.out.println("FOUND TYPE " + l.getResource().getStore().getType());
-            if (WebEOCConstants.WEBEOC_DATASTORE_NAME.equals(l.getResource().getStore().getType())) {
-                webEocLayers.add(l.getName());
-            }
-        }
+	private long getCurrentSettingsIntervalMs() {
 
-//        System.out.println("THESE LOOK LIKE WEBEOC LAYERS");
-        for (String s : webEocLayers) {
-            System.out.println(s);
-        }
+		MetadataMap metadata = GeoServerApplication.get().getGeoServer().getGlobal().getMetadata();
 
-        layerDropDown = new DropDownChoice("layersDropDown", new PropertyModel(this, "selectedResetLayer"), webEocLayers);
-        resetLayerForm.add(layerDropDown);
-        SubmitLink resetLink = new SubmitLink("reset", resetLayerForm) {
+		Serializable currentIntervalSettingMs = metadata
+				.get(WebEOCConstants.WEBEOC_POLLING_INTERVAL_KEY);
 
-            @Override
-            public void onSubmit() {
-                String val = selectedResetLayer;
-                if (val == null) {
-                    return;
-                }
-                Catalog catalog = GeoServerApplication.get().getCatalog();
-                LayerInfo layer = catalog.getLayerByName(val);
-                if (layer == null) {
-                    return;
-                }
-                Map<String, Serializable> m = layer.getResource().getStore().getConnectionParameters();
+		if (currentIntervalSettingMs == null) {
+			// if it was null that means there wasn't anything set for the
+			// polling interval, that is silly! we'll put one in right now!
+			long defaultInterval = (long) WebEOCConstants.WEBEOC_POLLING_INTERVAL_DEFAULT;
+			metadata.put(WebEOCConstants.WEBEOC_POLLING_INTERVAL_KEY, defaultInterval);
+			return defaultInterval;
+		}
 
-                String tableName = layer.getResource().getNativeName() == null ? val : layer.getResource().getNativeName();
-                try {
-                    WebEOCLayerInfo webInfo = new WebEOCLayerInfoImpl();
-                    webInfo.set(layer.getResource().getMetadata());
-                    WebEocDao webDAO = new WebEocDao(m, webInfo, tableName);
-                    webDAO.delTableContents();
-                    Poller.getInstance().pollNow();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        };
+		return Long.parseLong(currentIntervalSettingMs.toString());
+	}
 
-        resetLayerForm.add(resetLink);
-        resetLayerForm.setDefaultButton(resetLink);
-    }
+	/**
+	 * Extract poller interval from model. If invalid, return default value.
+	 * 
+	 * @param pollerIntervalModelMins
+	 * @param defaultIntervalMs
+	 * @return rounded interval
+	 */
+	private long extractPollerIntervalMsFromModel(String pollerIntervalModelMins,
+			float defaultIntervalMs) {
+		try {
+
+			// Convert from minutes to milliseconds
+			float intervalMs = Float.parseFloat(pollerIntervalModelMins) * 60 * 1000;
+
+			/*
+			 * Check to make sure pollerIntervalModel is greater min, if it
+			 * isn't, we will silently set it min
+			 */
+			if (intervalMs < (long) WebEOCConstants.WEBEOC_POLLING_INTERVAL_MINIMUM) {
+				intervalMs = (long) WebEOCConstants.WEBEOC_POLLING_INTERVAL_MINIMUM;
+			}
+
+			return Math.round(intervalMs);
+
+		} catch (NumberFormatException e) {
+			System.out.println("User entered in an invalid polling interval, "
+					+ pollerIntervalModelMins + " " + e.getMessage());
+			return Math.round(defaultIntervalMs);
+		}
+
+	}
 }
