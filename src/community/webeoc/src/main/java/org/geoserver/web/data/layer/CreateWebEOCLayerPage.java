@@ -47,6 +47,7 @@ import org.geoserver.catalog.StyleInfo;
 import org.geoserver.web.GeoServerHomePage;
 import org.geoserver.web.GeoServerSecuredPage;
 import org.geoserver.web.data.layer.AttributeEditPage.BindingChoiceRenderer;
+import org.geoserver.web.data.resource.ResourceConfigurationPage;
 import org.geoserver.web.data.store.StoreListChoiceRenderer;
 import org.geoserver.web.data.webeoc.WebEOCConstants;
 import org.geoserver.web.data.webeoc.WebEOCCredentialsSerializedWrapper;
@@ -287,6 +288,9 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
       // Save the layer and resource
       catalog.add(fti);
       catalog.add(layerInfo);
+      
+      // Go to the layer edit page
+      setResponsePage(new ResourceConfigurationPage(layerInfo, false));
     } catch (IOException ex) {
       Logger.getLogger(CreateWebEOCLayerPage.class.getName()).log(Level.SEVERE, null, ex);
     }
