@@ -10,6 +10,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import org.geoserver.web.data.webeoc.WebEOCConstants;
 
 import org.geoserver.web.wicket.GeoServerDataProvider;
 
@@ -36,6 +37,13 @@ public class WebEOCAttributesProvider extends GeoServerDataProvider<AttributeDes
     }
 
     public void addNewAttribute(AttributeDescription attribute) {
+        /*We want some more intellegent defaults for known datatypes*/
+        if(attribute.getName().equals(WebEOCConstants.WEBEOC_DEFAULT_LATITUDENAME) || attribute.getName().equals(WebEOCConstants.WEBEOC_DEFAULT_LONGITUDENAME)){
+            attribute.setBinding(Double.class);
+        }
+        else if(attribute.getName().equals(WebEOCConstants.WEBEOC_DEFAULT_LASTUPDATEDNAME)){
+            attribute.setBinding(Timestamp.class);
+        }
         attributes.add(attribute);
     }
 
