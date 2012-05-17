@@ -4,12 +4,16 @@ import java.io.Serializable;
 import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.geoserver.catalog.Catalog;
 import org.geoserver.config.GeoServer;
 import org.geoserver.web.data.webeoc.WebEOCConstants;
 
 public class Poller {
+
+	private static final Logger logger = Logger.getLogger(Poller.class.getName());
 
 	private Timer timer = null;
 	private float intervalMs;
@@ -48,7 +52,7 @@ public class Poller {
 		this.catalog = geoserver.getCatalog();
 		this.intervalMs = getPollingIntervalMsSetting(geoserver);
 
-		System.out.printf("The polling interval is %s\n", intervalMs);
+		logger.log(Level.INFO, String.format("The polling interval is %s\n", intervalMs));
 
 		if (isPollingEnabledSetting(geoserver)) {
 			start(intervalMs);
@@ -76,8 +80,7 @@ public class Poller {
 					.get(WebEOCConstants.WEBEOC_POLLING_INTERVAL_KEY).toString();
 			return Float.valueOf(pollingIntervalStr);
 		} catch (Exception e) { // if anything at all goes wrong, use default
-			System.out.println("ERROR: failed to get polling interval from file, using default.");
-			e.printStackTrace();
+			logger.log(Level.WARNING, "Failed to get polling interval from file, using default.");
 			return WebEOCConstants.WEBEOC_POLLING_INTERVAL_MS_DEFAULT;
 		}
 	}
@@ -132,7 +135,7 @@ public class Poller {
 	public Date lastRanAt() {
 		return lastPolled;
 	}
-	
+
 	/**
 	 * Returns whether poller has run since startup.
 	 */
@@ -144,6 +147,7 @@ public class Poller {
 	 * Do the actual work of updating the tables.
 	 */
 	private void doUpdate() {
+		logger.log(Level.INFO, "Performing update.");
 		lastPolled = new Date();
 		UpdateTask.updateWebEocTables(catalog);
 	}

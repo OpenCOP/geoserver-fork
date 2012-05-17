@@ -1,6 +1,8 @@
 package org.geoserver.webeoc;
 
 import java.net.MalformedURLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.net.URL;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -19,12 +21,14 @@ import com.esi911.webeoc7.api._1.WebEOCCredentials;
  * A wrapper around the WebEOC web services.
  */
 public class WebEocWebService {
+	
+	private static final Logger logger = Logger.getLogger(UpdateTask.class.getName());
 
 	private APISoap apiSoap;
 	
 	public WebEocWebService(String wsdlUrl) {
 		URL url = null;
-		System.out.println("Url is " + wsdlUrl);
+		logger.log(Level.INFO, String.format("Url is %s", wsdlUrl));
 		try {
 			url = new URL(wsdlUrl);
 		} catch (MalformedURLException e) {

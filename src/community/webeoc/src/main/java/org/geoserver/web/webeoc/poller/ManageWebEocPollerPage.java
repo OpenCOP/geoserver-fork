@@ -1,6 +1,8 @@
 package org.geoserver.web.webeoc.poller;
 
 import java.io.Serializable;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +30,8 @@ import org.geoserver.webeoc.Poller;
 import org.geoserver.webeoc.WebEocDao;
 
 public class ManageWebEocPollerPage extends GeoServerSecuredPage {
+
+	private static final Logger logger = Logger.getLogger(ManageWebEocPollerPage.class.getName());
 
 	private Form<?> form;
 	private Form<?> resetLayerForm;
@@ -116,11 +120,11 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 
 			// Change the poller's status based on user input
 			if (pollerEnabledModel) {
-				System.out.println("Start this!");
+				logger.log(Level.INFO, "Start polling");
 				metadata.put(WebEOCConstants.WEBEOC_POLLING_ENABLED_KEY, true);
 				Poller.getInstance().start(newIntervalMs);
 			} else {
-				System.out.println("Stop this!");
+				logger.log(Level.INFO, "Stop polling");
 				metadata.put(WebEOCConstants.WEBEOC_POLLING_ENABLED_KEY, false);
 				Poller.getInstance().stop();
 			}
@@ -136,30 +140,19 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private void initResetLayerForm() {
 		// Create the form
-		// System.out.println("IN INITRESETLAYERFORM CODE");
 		add(resetLayerForm = new Form("resetPollerForm"));
 
 		Catalog catalog = GeoServerApplication.get().getCatalog();
 		List<LayerInfo> layerList = catalog.getLayers();
-		// for (LayerInfo l : layerList) {
-		// System.out.println("FOUND THESE LAYER NAMES " + l.getName());
-		// }
 		ArrayList<String> webEocLayers = new ArrayList<String>();
 
 		/*
 		 * prune out layers that aren't web eoc layers
 		 */
 		for (LayerInfo l : layerList) {
-			// System.out.println("FOUND TYPE " +
-			// l.getResource().getStore().getType());
 			if (WebEOCConstants.WEBEOC_DATASTORE_NAME.equals(l.getResource().getStore().getType())) {
 				webEocLayers.add(l.getName());
 			}
-		}
-
-		// System.out.println("THESE LOOK LIKE WEBEOC LAYERS");
-		for (String s : webEocLayers) {
-			System.out.println(s);
 		}
 
 		layerDropDown = new DropDownChoice("layersDropDown", new PropertyModel(this,
