@@ -12,6 +12,7 @@ import org.apache.wicket.markup.html.form.SubmitLink;
 import org.apache.wicket.markup.html.form.TextField;
 import org.apache.wicket.markup.html.link.BookmarkablePageLink;
 import org.apache.wicket.model.PropertyModel;
+import org.apache.wicket.validation.validator.MinimumValidator;
 import org.geoserver.catalog.Catalog;
 import org.geoserver.catalog.LayerInfo;
 import org.geoserver.catalog.MetadataMap;
@@ -31,7 +32,7 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 	private Form<?> resetLayerForm;
 	private DropDownChoice<?> layerDropDown;
 	private boolean pollerEnabledModel;
-	private String pollerIntervalModelMins;
+	private float pollerIntervalModelMins;
 	public String selectedResetLayer = "NOTHING";
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
@@ -41,16 +42,19 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 		// synced, and believe the poller
 		pollerEnabledModel = Poller.getInstance().isRunning();
 
-		pollerIntervalModelMins = getPollerIntervalModelMins();
+		pollerIntervalModelMins = msToMins(getCurrentSettingsIntervalMs());
 
 		// Create the form
 		add(form = new Form("form"));
 
 		// Create the text field for setting the poller interval
-		TextField<String> pollingInterval = new TextField<String>("pollingInterval",
-				new PropertyModel<String>(this, "pollerIntervalModelMins"));
-		pollingInterval.setOutputMarkupId(true);
-		form.add(pollingInterval);
+
+		TextField<Float> pollingIntervalMins = new TextField<Float>("pollingInterval",
+				new PropertyModel<Float>(this, "pollerIntervalModelMins"));
+		pollingIntervalMins.add(new MinimumValidator<Float>(
+				msToMins(WebEOCConstants.WEBEOC_POLLING_INTERVAL_MS_MINIMUM)));
+		pollingIntervalMins.setOutputMarkupId(true);
+		form.add(pollingIntervalMins);
 
 		// Create the checkbox for enabling/disabling the poller
 		final CheckBox pollerEnabled = new CheckBox("pollerEnabled", new PropertyModel<Boolean>(
@@ -81,14 +85,14 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 			Poller.getInstance().pollNow();
 
 			// refresh page
-			setResponsePage(new ManageWebEocPollerPage());
+			setResponsePage(GeoServerHomePage.class);
 		}
 	}
 
 	@SuppressWarnings("serial")
 	class SaveLink extends SubmitLink {
 
-		public SaveLink(String id, Form<?> form) {
+		private SaveLink(String id, Form<?> form) {
 			super(id, form);
 		}
 
@@ -97,9 +101,8 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 			GeoServerInfo global = GeoServerApplication.get().getGeoServer().getGlobal();
 			MetadataMap metadata = global.getMetadata();
 
-			long newIntervalMs = extractPollerIntervalMsFromModel(pollerIntervalModelMins,
-					getCurrentSettingsIntervalMs());
-			metadata.put(WebEOCConstants.WEBEOC_POLLING_INTERVAL_KEY, Long.toString(newIntervalMs));
+			float newIntervalMs = minsToMs(pollerIntervalModelMins);
+			metadata.put(WebEOCConstants.WEBEOC_POLLING_INTERVAL_KEY, Float.toString(newIntervalMs));
 
 			// Change the poller's status based on user input
 			if (pollerEnabledModel) {
@@ -116,35 +119,8 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 			GeoServerApplication.get().getGeoServer().save(global);
 
 			// if you don't do this, the page won't refresh right
-			setResponsePage(new ManageWebEocPollerPage());
+			setResponsePage(GeoServerHomePage.class);
 		}
-	}
-
-	private String getPollerIntervalModelMins() {
-
-		Serializable intervalMsFromSettings = GeoServerApplication.get().getGeoServer().getGlobal()
-				.getMetadata().get(WebEOCConstants.WEBEOC_POLLING_INTERVAL_KEY);
-
-		if (intervalMsFromSettings == null) {
-			return defaultPollingIntervalMins();
-		}
-
-		// Convert the value back into minutes for the user
-		try {
-			long intervalMs = Long.parseLong(intervalMsFromSettings.toString());
-			float intervalMins = intervalMs / (60 * 1000f);
-			return Float.toString(intervalMins);
-		} catch (Exception e) {
-			e.printStackTrace();
-			return defaultPollingIntervalMins();
-		}
-	}
-
-	/**
-	 * Grab a default polling interval from our hardcoded defaults.
-	 */
-	private String defaultPollingIntervalMins() {
-		return Long.toString((long) WebEOCConstants.WEBEOC_POLLING_INTERVAL_DEFAULT / (60 * 1000));
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
@@ -208,6 +184,8 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
+
+				setResponsePage(GeoServerHomePage.class);
 			}
 		};
 
@@ -215,53 +193,29 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 		resetLayerForm.setDefaultButton(resetLink);
 	}
 
-	private long getCurrentSettingsIntervalMs() {
+	private float msToMins(float ms) {
+		return ms / (60 * 1000f);
+	}
+
+	private float minsToMs(float mins) {
+		return mins * 60 * 1000f;
+	}
+
+	private float getCurrentSettingsIntervalMs() {
 
 		MetadataMap metadata = GeoServerApplication.get().getGeoServer().getGlobal().getMetadata();
 
-		Serializable currentIntervalSettingMs = metadata
+		Serializable intervalMsFromSettings = metadata
 				.get(WebEOCConstants.WEBEOC_POLLING_INTERVAL_KEY);
 
-		if (currentIntervalSettingMs == null) {
+		if (intervalMsFromSettings == null) {
 			// if it was null that means there wasn't anything set for the
 			// polling interval, that is silly! we'll put one in right now!
-			long defaultInterval = (long) WebEOCConstants.WEBEOC_POLLING_INTERVAL_DEFAULT;
-			metadata.put(WebEOCConstants.WEBEOC_POLLING_INTERVAL_KEY, defaultInterval);
-			return defaultInterval;
+			metadata.put(WebEOCConstants.WEBEOC_POLLING_INTERVAL_KEY,
+					(float) WebEOCConstants.WEBEOC_POLLING_INTERVAL_MS_DEFAULT);
+			return (float) WebEOCConstants.WEBEOC_POLLING_INTERVAL_MS_DEFAULT;
 		}
 
-		return Long.parseLong(currentIntervalSettingMs.toString());
-	}
-
-	/**
-	 * Extract poller interval from model. If invalid, return default value.
-	 * 
-	 * @param pollerIntervalModelMins
-	 * @param defaultIntervalMs
-	 * @return rounded interval
-	 */
-	private long extractPollerIntervalMsFromModel(String pollerIntervalModelMins,
-			float defaultIntervalMs) {
-		try {
-
-			// Convert from minutes to milliseconds
-			float intervalMs = Float.parseFloat(pollerIntervalModelMins) * 60 * 1000;
-
-			/*
-			 * Check to make sure pollerIntervalModel is greater min, if it
-			 * isn't, we will silently set it min
-			 */
-			if (intervalMs < (long) WebEOCConstants.WEBEOC_POLLING_INTERVAL_MINIMUM) {
-				intervalMs = (long) WebEOCConstants.WEBEOC_POLLING_INTERVAL_MINIMUM;
-			}
-
-			return Math.round(intervalMs);
-
-		} catch (NumberFormatException e) {
-			System.out.println("User entered in an invalid polling interval, "
-					+ pollerIntervalModelMins + " " + e.getMessage());
-			return Math.round(defaultIntervalMs);
-		}
-
+		return Float.parseFloat(intervalMsFromSettings.toString());
 	}
 }

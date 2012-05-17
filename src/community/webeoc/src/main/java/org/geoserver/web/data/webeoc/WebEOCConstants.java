@@ -13,8 +13,8 @@ public class WebEOCConstants {
 	public static final String WEBEOC_USER_KEY = "WebEOC Username";
 	public static final String WEBEOC_PASSWORD_KEY = "WebEOC Password";
 	public static final String WEBEOC_POLLING_INTERVAL_KEY = "WebEOC Polling Interval";
-	public static final int WEBEOC_POLLING_INTERVAL_DEFAULT = 5 * 60 * 1000; // milliseconds
-	public static final int WEBEOC_POLLING_INTERVAL_MINIMUM = 1 * 60 * 1000; // milliseconds
+	public static final int WEBEOC_POLLING_INTERVAL_MS_DEFAULT = 5 * 60 * 1000; 
+	public static final int WEBEOC_POLLING_INTERVAL_MS_MINIMUM = 1 * 60 * 1000; 
 
 	// Layer Constants
 	public static final String WEBEOC_INCIDENT_KEY = "webeoc.incident";

@@ -11,7 +11,7 @@ import org.geoserver.web.data.webeoc.WebEOCConstants;
 public class Poller {
 
 	private Timer timer = null;
-	private long intervalMs;
+	private float intervalMs;
 
 	/*
 	 * This class has some round-about hacks to it. There were two problems to
@@ -68,15 +68,15 @@ public class Poller {
 	/**
 	 * Retrieve the polling interval from geoserver's xml files.
 	 */
-	private int getPollingIntervalMsSetting(GeoServer geoserver) {
+	private float getPollingIntervalMsSetting(GeoServer geoserver) {
 		try {
 			String pollingIntervalStr = geoserver.getGlobal().getMetadata()
 					.get(WebEOCConstants.WEBEOC_POLLING_INTERVAL_KEY).toString();
-			return Integer.valueOf(pollingIntervalStr);
+			return Float.valueOf(pollingIntervalStr);
 		} catch (Exception e) { // if anything at all goes wrong, use default
 			System.out.println("ERROR: failed to get polling interval from file, using default.");
 			e.printStackTrace();
-			return WebEOCConstants.WEBEOC_POLLING_INTERVAL_DEFAULT;
+			return WebEOCConstants.WEBEOC_POLLING_INTERVAL_MS_DEFAULT;
 		}
 	}
 
@@ -84,7 +84,7 @@ public class Poller {
 	 * Starts the poller. If the poller is already running, changes the polling
 	 * interval and forces the poller to poll immediately.
 	 */
-	public void start(long intervalMs) {
+	public void start(float intervalMs) {
 		stop();
 
 		this.intervalMs = intervalMs;
@@ -95,7 +95,7 @@ public class Poller {
 			public void run() {
 				UpdateTask.updateWebEocTables(catalog);
 			}
-		}, 0l, intervalMs);
+		}, 0l, (long) intervalMs);
 	}
 
 	public void stop() {
