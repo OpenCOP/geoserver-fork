@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.wicket.markup.html.basic.Label;
 import org.apache.wicket.markup.html.form.CheckBox;
 import org.apache.wicket.markup.html.form.DropDownChoice;
 import org.apache.wicket.markup.html.form.Form;
@@ -48,13 +49,14 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 		add(form = new Form("form"));
 
 		// Create the text field for setting the poller interval
-
 		TextField<Float> pollingIntervalMins = new TextField<Float>("pollingInterval",
 				new PropertyModel<Float>(this, "pollerIntervalModelMins"));
 		pollingIntervalMins.add(new MinimumValidator<Float>(
 				msToMins(WebEOCConstants.WEBEOC_POLLING_INTERVAL_MS_MINIMUM)));
 		pollingIntervalMins.setOutputMarkupId(true);
 		form.add(pollingIntervalMins);
+
+		form.add(new Label("lastpolled", lastRanText()));
 
 		// Create the checkbox for enabling/disabling the poller
 		final CheckBox pollerEnabled = new CheckBox("pollerEnabled", new PropertyModel<Boolean>(
@@ -71,6 +73,14 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 		form.add(new PollNowLink("pollnow", form));
 
 		initResetLayerForm();
+	}
+
+	private String lastRanText() {
+		Poller poller = Poller.getInstance();
+		if (!poller.hasRun()) {
+			return "Not run since startup";
+		}
+		return poller.lastRanAt().toString();
 	}
 
 	@SuppressWarnings("serial")

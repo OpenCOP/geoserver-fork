@@ -1,6 +1,7 @@
 package org.geoserver.webeoc;
 
 import java.io.Serializable;
+import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -12,6 +13,7 @@ public class Poller {
 
 	private Timer timer = null;
 	private float intervalMs;
+	private Date lastPolled = null;
 
 	/*
 	 * This class has some round-about hacks to it. There were two problems to
@@ -93,7 +95,7 @@ public class Poller {
 
 			@Override
 			public void run() {
-				UpdateTask.updateWebEocTables(catalog);
+				doUpdate();
 			}
 		}, 0l, (long) intervalMs);
 	}
@@ -115,11 +117,34 @@ public class Poller {
 		}
 		// run once if not running
 		else {
-			UpdateTask.updateWebEocTables(catalog);
+			doUpdate();
 		}
 	}
 
 	public boolean isRunning() {
 		return timer != null;
+	}
+
+	/**
+	 * Returns when the poller last ran. If the poller has not yet run, returns
+	 * null.
+	 */
+	public Date lastRanAt() {
+		return lastPolled;
+	}
+	
+	/**
+	 * Returns whether poller has run since startup.
+	 */
+	public boolean hasRun() {
+		return lastPolled != null;
+	}
+
+	/**
+	 * Do the actual work of updating the tables.
+	 */
+	private void doUpdate() {
+		lastPolled = new Date();
+		UpdateTask.updateWebEocTables(catalog);
 	}
 }
