@@ -27,13 +27,14 @@ import org.geoserver.webeoc.WebEocDao;
 
 public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 
-	private Form form;
-	private Form resetLayerForm;
-	private DropDownChoice layerDropDown;
+	private Form<?> form;
+	private Form<?> resetLayerForm;
+	private DropDownChoice<?> layerDropDown;
 	private boolean pollerEnabledModel;
 	private String pollerIntervalModelMins;
 	public String selectedResetLayer = "NOTHING";
 
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public ManageWebEocPollerPage() {
 
 		// assume that the enabled setting and whether the poller is running are
@@ -58,7 +59,6 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 
 		// create the save, reset and cancel buttons
 		form.add(new BookmarkablePageLink("cancel", GeoServerHomePage.class));
-		// form.add(new BookmarkablePageLink("reset", GeoServerHomePage.class));
 
 		SubmitLink saveLink = new SaveLink("save", form);
 		form.add(saveLink);
@@ -69,24 +69,26 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 		initResetLayerForm();
 	}
 
+	@SuppressWarnings("serial")
 	private final class PollNowLink extends SaveLink {
-		
-		private PollNowLink(String id, Form form) {
+
+		private PollNowLink(String id, Form<?> form) {
 			super(id, form);
 		}
 
 		@Override
 		public void onSubmit() {
 			Poller.getInstance().pollNow();
-			
+
 			// refresh page
 			setResponsePage(new ManageWebEocPollerPage());
 		}
 	}
 
+	@SuppressWarnings("serial")
 	class SaveLink extends SubmitLink {
 
-		public SaveLink(String id, Form form) {
+		public SaveLink(String id, Form<?> form) {
 			super(id, form);
 		}
 
@@ -145,6 +147,7 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 		return Long.toString((long) WebEOCConstants.WEBEOC_POLLING_INTERVAL_DEFAULT / (60 * 1000));
 	}
 
+	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private void initResetLayerForm() {
 		// Create the form
 		// System.out.println("IN INITRESETLAYERFORM CODE");
@@ -176,6 +179,8 @@ public class ManageWebEocPollerPage extends GeoServerSecuredPage {
 		layerDropDown = new DropDownChoice("layersDropDown", new PropertyModel(this,
 				"selectedResetLayer"), webEocLayers);
 		resetLayerForm.add(layerDropDown);
+
+		@SuppressWarnings("serial")
 		SubmitLink resetLink = new SubmitLink("reset", resetLayerForm) {
 
 			@Override

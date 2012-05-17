@@ -203,10 +203,10 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
       }
     };
     
-    
     webeocLayerInfo.setLatField(WebEOCConstants.WEBEOC_DEFAULT_LATITUDENAME);
     webeocLayerInfo.setLonField(WebEOCConstants.WEBEOC_DEFAULT_LONGITUDENAME);
     webeocLayerInfo.setLastUpdatedField(WebEOCConstants.WEBEOC_DEFAULT_LASTUPDATEDNAME);
+    
     form.add(saveLink);
     form.setDefaultButton(saveLink);
   }
