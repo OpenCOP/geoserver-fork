@@ -290,7 +290,7 @@ public class CreateWebEOCLayerPage extends GeoServerSecuredPage {
       catalog.add(layerInfo);
       
       // Go to the layer edit page
-      setResponsePage(new ResourceConfigurationPage(layerInfo, false));
+      setResponsePage(new ResourceConfigurationPage(catalog.getLayer(layerInfo.getId()), false));
     } catch (IOException ex) {
       Logger.getLogger(CreateWebEOCLayerPage.class.getName()).log(Level.SEVERE, null, ex);
     }
