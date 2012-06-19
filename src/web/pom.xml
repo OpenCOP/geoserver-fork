@@ -41,4 +41,10 @@
     <module>security</module>
   </modules>
 
+  <profiles>
+    <profile>
+        <id>geonetcdf</id>
+    </profile>
+  </profiles>
+
 </project>
