@@ -17,6 +17,7 @@ import org.geoserver.web.data.webeoc.WebEOCConstants;
 import org.geoserver.web.data.webeoc.WebEOCCredentialsSerializedWrapper;
 import org.geoserver.web.data.webeoc.WebEOCLayerInfo;
 import org.geoserver.web.data.webeoc.WebEOCLayerInfoImpl;
+import org.geotools.util.logging.Logging;
 
 /**
  * Ties together the pieces of getting data from webeoc and pushing it into our
@@ -24,7 +25,7 @@ import org.geoserver.web.data.webeoc.WebEOCLayerInfoImpl;
  */
 public class UpdateTask {
 
-	private static final Logger logger = Logger.getLogger(UpdateTask.class.getName());
+	private static final Logger logger = Logging.getLogger(UpdateTask.class);
 
 	/**
 	 * Get data for a particular feature from WebEoc. If updatedSince is null,
@@ -96,7 +97,7 @@ public class UpdateTask {
 
 						// get last-updated date (max date)
 						Date lastUpdated = webEocDao.getMaxDate();
-						logger.log(Level.INFO, String.format("Last updated date is %s", lastUpdated));
+						logger.log(Level.FINE, String.format("Last updated date is %s", lastUpdated));
 
 						// get data from webeoc
 						String webEOCXMLResponse = getDataAsXml(store, featureType, lastUpdated);

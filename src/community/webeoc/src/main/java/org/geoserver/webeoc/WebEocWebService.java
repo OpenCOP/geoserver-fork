@@ -16,19 +16,20 @@ import javax.xml.datatype.XMLGregorianCalendar;
 import com.esi911.webeoc7.api._1.API;
 import com.esi911.webeoc7.api._1.APISoap;
 import com.esi911.webeoc7.api._1.WebEOCCredentials;
+import org.geotools.util.logging.Logging;
 
 /**
  * A wrapper around the WebEOC web services.
  */
 public class WebEocWebService {
 	
-	private static final Logger logger = Logger.getLogger(UpdateTask.class.getName());
+	private static final Logger logger = Logging.getLogger(WebEocWebService.class);
 
 	private APISoap apiSoap;
 	
 	public WebEocWebService(String wsdlUrl) {
 		URL url = null;
-		logger.log(Level.INFO, String.format("Url is %s", wsdlUrl));
+		logger.log(Level.FINE, String.format("Url is %s", wsdlUrl));
 		try {
 			url = new URL(wsdlUrl);
 		} catch (MalformedURLException e) {

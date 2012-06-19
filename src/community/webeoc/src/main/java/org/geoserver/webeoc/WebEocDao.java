@@ -22,6 +22,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.geoserver.web.data.webeoc.WebEOCLayerInfo;
+import org.geotools.util.logging.Logging;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -32,7 +33,7 @@ import com.vividsolutions.jts.io.WKTReader;
 
 public class WebEocDao {
 
-	private static final Logger logger = Logger.getLogger(UpdateTask.class.getName());
+	private static final Logger logger = Logging.getLogger(WebEocDao.class);
 
 	private static final int SRID = 4326;
 
@@ -121,7 +122,7 @@ public class WebEocDao {
 		 */
 		this.geomColumnIndex = -1;
 		for (String key : columnTypeMap.keySet()) {
-			logger.log(Level.INFO,
+			logger.log(Level.FINE,
 					"Checking key " + key + " its value is " + columnTypeMap.get(key));
 			if (columnTypeMap.get(key).equals("USER-DEFINED")) {
 				String locationColumnName = key;
@@ -220,10 +221,10 @@ public class WebEocDao {
 			s.setInt(fidColId + 1, Integer.valueOf(valArray[dataidColId]));
 
 			try {
-				logger.log(Level.INFO,
+				logger.log(Level.FINE,
 						"Ensuring that this id is not currently in the database (if it is, it won't be there long)");
 				checkNDel(Integer.parseInt(valArray[dataidColId]));
-				logger.log(Level.INFO, "The prepared sql statement is: " + s.toString());
+				logger.log(Level.FINE, "The prepared sql statement is: " + s.toString());
 				s.executeUpdate();
 			} catch (SQLException e) {
 				logger.log(Level.WARNING,
@@ -261,13 +262,13 @@ public class WebEocDao {
 
 		String message = rowsAffected > 0 ? "Deleted " + rowsAffected + " Row(s)."
 				: "No rows found";
-		logger.log(Level.INFO, message);
+		logger.log(Level.FINE, message);
 	}
 
 	private void addValuesToPreparedStatement(PreparedStatement ps, String[] valArray, Geometry g) {
 		for (int i = 0; i < valArray.length; i++) {
 			String dataType = columnTypeMap.get(columnOrder[i]);
-			logger.log(Level.INFO, "Datatype is " + dataType + " And value is " + valArray[i]
+			logger.log(Level.FINE, "Datatype is " + dataType + " And value is " + valArray[i]
 					+ " And Column Name is " + columnOrder[i]);
 			try {
 				if (dataType.equals("USER-DEFINED")) {
@@ -306,9 +307,9 @@ public class WebEocDao {
 				logger.log(Level.WARNING, "Something went wrong, tried to parse value '"
 						+ valArray[i] + "' and couldn't. Interpreting it as null.");
 				try {
-					logger.log(Level.INFO, String.format("The datatype is '%s'.", dataType));
+					logger.log(Level.FINE, String.format("The datatype is '%s'.", dataType));
 					logger.log(
-							Level.INFO,
+							Level.FINE,
 							String.format("The dataTypeMap.get(dataType) is '%s'.",
 									dataTypeMap.get(dataType)));
 					ps.setNull(i + 1, dataTypeMap.get(dataType));
@@ -389,7 +390,7 @@ public class WebEocDao {
 	}
 
 	public void delTableContents() throws SQLException {
-		logger.log(Level.INFO, "DELETEING CONTENTS FROM " + this.tableName);
+		logger.log(Level.FINE, "DELETEING CONTENTS FROM " + this.tableName);
 		Statement s = conn.createStatement();
 		s.executeUpdate("DELETE FROM " + this.tableName);
 	}
