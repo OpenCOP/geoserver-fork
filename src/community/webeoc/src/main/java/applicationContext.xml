@@ -30,13 +30,13 @@
     <property name="order" value="20"/>
   </bean>
   
-  <bean id="webEOCLayerEditTabPanelInfo" class="org.geoserver.web.data.resource.LayerEditTabPanelInfo">
+<!--  <bean id="webEOCLayerEditTabPanelInfo" class="org.geoserver.web.data.resource.LayerEditTabPanelInfo">
     <property name="id" value="webEOCLayerEditTabPanelInfo" />
     <property name="titleKey" value="WebEOCLayerEditTabPanelInfo.title" />
     <property name="descriptionKey" value="WebEOCLayerEditTabPanelInfo.shortDescription" />
     <property name="componentClass"
       value="org.geoserver.web.data.resource.WebEOCTabPanel" />
     <property name="order" value="500" />
-  </bean>
+  </bean>-->
 
 </beans>
