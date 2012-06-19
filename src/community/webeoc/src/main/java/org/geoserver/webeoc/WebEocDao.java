@@ -286,7 +286,7 @@ public class WebEocDao {
 					if (d == null) {
 						ps.setNull(i + 1, dataTypeMap.get(dataType));
 					} else {
-						ps.setDate(i + 1, new java.sql.Date(d.getTime()));
+						ps.setTimestamp(i + 1, new java.sql.Timestamp(d.getTime()));
 					}
 				} else if (dataType.equals("integer")) {
 					ps.setInt(i + 1, Integer.parseInt(valArray[i]));

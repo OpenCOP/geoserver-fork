@@ -38,17 +38,17 @@ public class WebEocWebService {
 	}
 	
 	/**
-     * Convert Date -> XMLGregorianCalendar.  Yes, it really is this difficult.
+   * Convert Date -> XMLGregorianCalendar.  Yes, it really is this difficult.
 	 * @throws DatatypeConfigurationException 
-     */
+   */
 	private static XMLGregorianCalendar convertDate(Date date) throws DatatypeConfigurationException {
-	    GregorianCalendar gCal = new GregorianCalendar();
-	    gCal.setTime(date);
+	  GregorianCalendar gCal = new GregorianCalendar();
+	  gCal.setTime(date);
 
-	    XMLGregorianCalendar xGCal = DatatypeFactory.newInstance().newXMLGregorianCalendar(gCal);
-	    xGCal.setTimezone(DatatypeConstants.FIELD_UNDEFINED);
-	    return xGCal;
-    }
+	  XMLGregorianCalendar xGCal = DatatypeFactory.newInstance().newXMLGregorianCalendar(gCal);
+	  xGCal.setTimezone(DatatypeConstants.FIELD_UNDEFINED);
+    return xGCal;
+  }
 
 	/**
 	 * Return a list of all board names associated with an incident.
