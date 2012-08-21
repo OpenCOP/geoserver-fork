@@ -2,6 +2,9 @@
   <head>
     <title>WFS GetFeature Response</title>
 
+    <!-- google api -->
+    <script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?v=3.2&sensor=false"></script>
+
     <script src="/geoserver/lib/openlayers/OpenLayers.js" type="text/javascript"></script>
     <script src="/geoserver/lib/ext-3.4.0/adapter/ext/ext-base.js" type="text/javascript"></script>
 <!--    <script type="text/javascript" src="http://extjs.cachefly.net/ext-3.4.0/ext-all-debug.js"></script>-->
@@ -18,6 +21,11 @@
     <script src="/geoserver/lib/openlayers/proj4js-compressed.js" type="text/javascript"></script>
     <!-- Projection definitions -->
     <script src="/geoserver/lib/openlayers/defs/projections.js" type="text/javascript"></script>
+
+    <style>
+      .olLayerGooglePoweredBy { display: none; }
+      .olLayerGoogleV3 { display: none; }
+    </style>
     
     <script type="text/javascript">
       var featureJson = ${featureJson};
@@ -45,7 +53,7 @@
 
         /*** LAYERS ***/
         // Add a default base layer
-        var baseLayer = new OpenLayers.Layer.OSM();
+        var baseLayer = buildBaseLayer();
         
         // create vector layer for the requested features
         vectorLayer = buildVectorLayer(saveStrategy);
@@ -425,6 +433,21 @@
     }
 
     /*** LAYERS ***/
+    /*
+     * Builds the base layer for the editor.
+     */
+    function buildBaseLayer() {
+      return new OpenLayers.Layer.Google("Google Hybrid", {
+        sphericalMercator : true,
+        transitionEffect : 'resize',
+        type : google.maps.MapTypeId.HYBRID,
+        isBaseLayer : true,
+        baselayer : true,
+        numZoomLevels: 21,  // see issue 46
+        visible : true
+      });
+    }
+
     /*
      * Builds the vector layer that contains the requested features.
      */
