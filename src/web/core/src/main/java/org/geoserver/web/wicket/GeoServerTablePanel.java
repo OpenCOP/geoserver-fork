@@ -16,6 +16,7 @@ import org.apache.wicket.ajax.markup.html.AjaxLink;
 import org.apache.wicket.ajax.markup.html.form.AjaxButton;
 import org.apache.wicket.behavior.SimpleAttributeModifier;
 import org.apache.wicket.extensions.markup.html.repeater.util.SortParam;
+import org.apache.wicket.markup.html.IHeaderResponse;
 import org.apache.wicket.markup.html.WebMarkupContainer;
 import org.apache.wicket.markup.html.basic.Label;
 import org.apache.wicket.markup.html.form.CheckBox;
@@ -106,7 +107,25 @@ public abstract class GeoServerTablePanel<T> extends Panel {
         listContainer = new WebMarkupContainer("listContainer");
 
         // build the filter form
-        filterForm = new Form("filterForm");
+        filterForm = new Form("filterForm") {
+            @Override
+            public void renderHead(IHeaderResponse response) {
+                if (isRootForm()) return;
+
+                //in subforms (on dialogs) the forms onsubmit doesn;t forward to the submit links
+                // onclick, so we manually do it outselves
+                String markupId = filterForm.getMarkupId();
+                String js = 
+                "if (Wicket.Browser.isSafari() || Wicket.Browser.isIE()) {" + 
+                    "n = document.getElementById('" + markupId + "'); " + 
+                    "while (n.nodeName.toLowerCase() != 'form') { n = n.parentElement; }; " + 
+                    "n.setAttribute('onsubmit', \"return document.getElementById('" + hiddenSubmit.getMarkupId()+ "').onclick();\");" + 
+                 "}";
+                response.renderOnLoadJavascript(js);
+            }
+            
+        };
+        filterForm.setOutputMarkupId(true);
         add(filterForm);
         filterForm.add(filter = new TextField("filter", new Model()));
         filter.add(new SimpleAttributeModifier("title", String.valueOf(new ResourceModel(
@@ -156,8 +175,8 @@ public abstract class GeoServerTablePanel<T> extends Panel {
                                     + component.getId() + "' instead");
                         }
                         item.add(component);
+                        onPopulateItem(property, item);
                     }
-
                 };
                 items.setReuseItems(true);
                 item.add(items);
@@ -254,7 +273,7 @@ public abstract class GeoServerTablePanel<T> extends Panel {
     protected void onSelectionUpdate(AjaxRequestTarget target) {
         // by default do nothing
     }
-    
+
     /**
      * Returns a model for this property title. Default behaviour is to lookup for a
      * resource name <page>.th.<propertyName>
@@ -499,7 +518,17 @@ public abstract class GeoServerTablePanel<T> extends Panel {
      */
     protected abstract Component getComponentForProperty(String id, IModel itemModel,
             Property<T> property);
-    
+
+    /**
+     * Called each time a new table item/column is created.
+     * <p>
+     * By default this method does nothing, subclasses may override for instance to add an attribute
+     * to the &lt;td> element created for the column.
+     * </p>
+     */
+    protected void onPopulateItem(Property<T> property, ListItem item) {
+    }
+
     IModel showingAllRecords(int first, int last, int size) {
         return new ParamResourceModel("showingAllRecords", this, first, last, size);
     }

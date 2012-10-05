@@ -310,7 +310,16 @@
     </annotation>
     <sequence>
       <choice minOccurs="0">
-        <element name="OCQL" type="string" />
+        <sequence>            
+          <element name="OCQL" type="string" />          
+          <element name="index" type="string" minOccurs="0" maxOccurs="1">
+            <annotation>
+              <documentation>
+                <![CDATA[ The index of database row if denormalised. Example of usage is timeseries endPosition that reflects the last timePosition where the timePosition value is dynamic. ]]>
+              </documentation>
+            </annotation>
+          </element>
+        </sequence>
         <element name="Expression">
           <complexType>
             <sequence>
@@ -430,6 +439,13 @@
           </documentation>
         </annotation>
       </element>
+      <element name="encodeIfEmpty" type="boolean" default="false" minOccurs="0">
+        <annotation>
+          <documentation>
+            <![CDATA[ Flag to determine whether to skip a attribute mapping if it is empty default to false]]>
+          </documentation>
+        </annotation>
+      </element>	  
       <element name="isList" type="boolean" default="false" minOccurs="0">
         <annotation>
           <documentation>

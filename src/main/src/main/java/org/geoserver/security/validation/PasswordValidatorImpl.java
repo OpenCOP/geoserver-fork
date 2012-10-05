@@ -5,7 +5,6 @@
 
 package org.geoserver.security.validation;
 
-import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.Set;
@@ -27,19 +26,57 @@ import static org.geoserver.security.validation.PasswordPolicyException.*;
 public class PasswordValidatorImpl extends AbstractSecurityValidator implements PasswordValidator {
 
     protected PasswordPolicyConfig config;
-    protected Set<String> notAllowedPrefixes;
+    protected static Set<String> notAllowedPrefixes;
+    protected static Object  lock = new Object();
     
     /**
      * Calculates not allowed prefixes
      */
     public PasswordValidatorImpl(GeoServerSecurityManager securityManager) {
         super(securityManager);
-        notAllowedPrefixes = new HashSet<String>();
-        for (GeoServerPasswordEncoder enc : GeoServerExtensions.extensions(
-                GeoServerPasswordEncoder.class)) {
-            notAllowedPrefixes.add(enc.getPrefix()+GeoServerPasswordEncoder.PREFIX_DELIMTER);
+    }
+    
+    public static Set<String> getNotAllowedPrefixes() {
+        if (notAllowedPrefixes!=null)
+            return notAllowedPrefixes;
+        synchronized (lock) {
+            if (notAllowedPrefixes!=null)
+                return notAllowedPrefixes;
+            
+            notAllowedPrefixes = new HashSet<String>();
+            for (GeoServerPasswordEncoder enc : GeoServerExtensions.extensions(
+                    GeoServerPasswordEncoder.class)) {
+                notAllowedPrefixes.add(enc.getPrefix()+GeoServerPasswordEncoder.PREFIX_DELIMTER);
+            }    
+            return notAllowedPrefixes;
         }
     }
+
+    /**
+     * Checks if the password starts with an encoder prefix, if true
+     * return the prefix, if false return <code>null</code>
+     * 
+     * @param password
+     * @return
+     */
+    public static String  passwordStartsWithEncoderPrefix (char[] password) {
+        
+        if (password==null)
+            return null;
+        
+        O:  for (String prefix: getNotAllowedPrefixes()) {
+                if (prefix.length() > password.length) 
+                    continue;
+                for (int i = 0; i < prefix.length(); i++) {
+                    if (prefix.charAt(i) != password[i]) 
+                       continue O;
+                }
+                return prefix;    
+            }
+            return null;
+        }   
+
+        
     
     @Override
     public void setConfig(PasswordPolicyConfig config) {
@@ -62,36 +99,27 @@ public class PasswordValidatorImpl extends AbstractSecurityValidator implements 
         }
         
         if (password.length < config.getMinLength())
-            throw createSecurityException(PW_MIN_LENGTH, config.getMinLength());
+            throw createSecurityException(MIN_LENGTH_$1, config.getMinLength());
         
         if (config.getMaxLength() >=0 &&  password.length >config.getMaxLength())
-            throw createSecurityException(PW_MAX_LENGTH,config.getMaxLength());
+            throw createSecurityException(MAX_LENGTH_$1,config.getMaxLength());
 
         if (config.isDigitRequired()) {
             if (checkUsingMethod("isDigit", password)==false)
-                throw createSecurityException(PW_NO_DIGIT);
+                throw createSecurityException(NO_DIGIT);
         }
         if (config.isUppercaseRequired()) {
             if (checkUsingMethod("isUpperCase", password)==false)
-                throw createSecurityException(PW_NO_UPPERCASE);
+                throw createSecurityException(NO_UPPERCASE);
         }
         if (config.isLowercaseRequired()) {
             if (checkUsingMethod("isLowerCase", password)==false)
-                throw createSecurityException(PW_NO_LOWERCASE);
+                throw createSecurityException(NO_LOWERCASE);
         }    
         
-O:      for (String prefix: notAllowedPrefixes) {
-            if (prefix.length() > password.length) {
-                continue;
-            }
-            for (int i = 0; i < prefix.length(); i++) {
-                if (prefix.charAt(i) != password[i]) {
-                    continue O;
-                }
-            }
-
-            throw createSecurityException(PW_RESERVED_PREFIX,prefix);
-        }
+        String prefix = passwordStartsWithEncoderPrefix(password); 
+        if (prefix!=null)
+            throw createSecurityException(RESERVED_PREFIX_$1,prefix);
     }
     
     /**

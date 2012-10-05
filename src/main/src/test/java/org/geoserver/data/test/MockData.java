@@ -7,6 +7,7 @@ package org.geoserver.data.test;
 import java.awt.geom.AffineTransform;
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -453,6 +454,25 @@ public class MockData implements TestData {
         }
     }
     
+    public void removeFeatureType(QName typeName) throws IOException {
+        String prefix = typeName.getPrefix();
+        String type = typeName.getLocalPart();
+        File featureTypeDir = new File(featureTypes, prefix + "_" + type);
+        if (!featureTypeDir.exists()) {
+            throw new FileNotFoundException("Type directory not found: "
+                    + featureTypeDir.getAbsolutePath());
+        }
+        File info = new File(featureTypeDir, "info.xml");
+        if (!info.exists()) {
+            throw new FileNotFoundException("FeatureType file not found: "
+                    + featureTypeDir.getAbsolutePath());
+        }
+        if (!IOUtils.delete(featureTypeDir)) {
+            throw new IOException("FetureType directory not deleted: "
+                    + featureTypeDir.getAbsolutePath());
+        }
+    }
+    
     /**
      * Adds the "well known" coverage types to the data directory.
      * 
@@ -605,6 +625,47 @@ public class MockData implements TestData {
         Map params = new HashMap();
         params.put(CatalogWriter.COVERAGE_TYPE_KEY, format.getName());
         params.put(CatalogWriter.COVERAGE_URL_KEY, "file:" + name.getPrefix() + "/" + name.getLocalPart() + (extension != null ? "." + extension : ""));
+        coverageStores.put(name.getLocalPart(), params);
+    }
+    
+    public void addCoverageFromZip(QName name, URL coverage, String extension, String styleName) throws Exception {
+        File directory = new File(data, name.getPrefix());
+        if (!directory.exists()) {
+            directory.mkdir();
+        }
+        
+        File f = new File(directory, name.getLocalPart());
+        f.mkdir();
+        
+        File compressedFile = new File(f, name.getLocalPart() + ".zip");
+        IOUtils.copy(coverage.openStream(), compressedFile);
+        IOUtils.decompress(compressedFile,  f);
+        final File srcDir = new File(f, name.getLocalPart());
+        srcDir.mkdir();
+        FileUtils.copyDirectory(srcDir,  f, true);
+        
+        if (extension != null) {
+            File coverageFile = new File(srcDir, name.getLocalPart() + "." + extension);
+            addCoverageFromPath(name, coverageFile,
+                    "file:" + name.getPrefix() + "/" + name.getLocalPart() + "/" + name.getLocalPart() + "." + extension,
+                    styleName);
+        } else {
+            addCoverageFromPath(name, f,
+                    "file:" + name.getPrefix() + "/" + name.getLocalPart(),
+                    styleName);
+        }
+    }
+    
+    private void addCoverageFromPath(QName name, File coverage, String relpath, String styleName) throws Exception {
+        coverageInfo(name, coverage, styleName);
+
+        // setup the meta information to be written in the catalog 
+        AbstractGridFormat format = (AbstractGridFormat) GridFormatFinder.findFormat(coverage);
+        namespaces.put(name.getPrefix(), name.getNamespaceURI());
+        coverageStoresNamespaces.put(name.getLocalPart(), name.getPrefix());
+        Map params = new HashMap();
+        params.put(CatalogWriter.COVERAGE_TYPE_KEY, format.getName());
+        params.put(CatalogWriter.COVERAGE_URL_KEY, relpath);
         coverageStores.put(name.getLocalPart(), params);
     }
     

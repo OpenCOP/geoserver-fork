@@ -47,6 +47,7 @@ import org.geoserver.catalog.StyleInfo;
 import org.geoserver.catalog.WMSLayerInfo;
 import org.geoserver.config.ContactInfo;
 import org.geoserver.config.GeoServer;
+import org.geoserver.config.ResourceErrorHandling;
 import org.geoserver.ows.URLMangler.URLType;
 import org.geoserver.platform.ServiceException;
 import org.geoserver.sld.GetStylesResponse;
@@ -69,6 +70,7 @@ import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.TransformException;
 import org.springframework.util.Assert;
+import org.vfny.geoserver.util.ResponseUtils;
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.ext.LexicalHandler;
@@ -187,7 +189,7 @@ public class GetCapabilitiesTransformer extends TransformerBase {
      * @author Gabriel Roldan
      * @version $Id
      */
-    private static class CapabilitiesTranslator extends TranslatorSupport {
+    private static class CapabilitiesTranslator extends  TranslatorSupport {
 
         private static final Logger LOGGER = org.geotools.util.logging.Logging
                 .getLogger(CapabilitiesTranslator.class.getPackage().getName());
@@ -217,6 +219,8 @@ public class GetCapabilitiesTransformer extends TransformerBase {
         private WMS wmsConfig;
 
         private Collection<ExtendedCapabilitiesProvider> extCapsProviders;
+        
+        private final boolean skipping;
 
         /**
          * Creates a new CapabilitiesTranslator object.
@@ -247,6 +251,8 @@ public class GetCapabilitiesTransformer extends TransformerBase {
                     CapabilitiesTranslator.this.element(element, content);
                 }
             };
+            this.skipping = ResourceErrorHandling.SKIP_MISCONFIGURED_LAYERS.equals(
+                wmsConfig.getGeoServer().getGlobal().getResourceErrorHandling());
         }
 
         /**
@@ -385,10 +391,12 @@ public class GetCapabilitiesTransformer extends TransformerBase {
 
                 element("Format", link.getType());
 
+                String content = ResponseUtils.proxifyMetadataLink(link, request.getBaseUrl());
+
                 AttributesImpl orAtts = new AttributesImpl();
                 orAtts.addAttribute("", "xmlns:xlink", "xmlns:xlink", "", XLINK_NS);
                 orAtts.addAttribute(XLINK_NS, "xlink:type", "xlink:type", "", "simple");
-                orAtts.addAttribute("", "xlink:href", "xlink:href", "", link.getContent());
+                orAtts.addAttribute("", "xlink:href", "xlink:href", "", content);
                 element("OnlineResource", null, orAtts);
 
                 end("MetadataURL");
@@ -713,7 +721,8 @@ public class GetCapabilitiesTransformer extends TransformerBase {
             for (LayerInfo layer : layers) {
                 ResourceInfo resource = layer.getResource();
                 layerBbox = resource.getLatLonBoundingBox();
-                latlonBbox.expandToInclude(layerBbox);
+                if (layerBbox != null)
+                    latlonBbox.expandToInclude(layerBbox);
             }
 
             if (LOGGER.isLoggable(Level.FINE)) {
@@ -752,16 +761,26 @@ public class GetCapabilitiesTransformer extends TransformerBase {
                                 + " the layer is geometryless", e);
                     }
                 }
-
+                
                 // ask for enabled() instead of isEnabled() to account for disabled resource/store
                 if (layer.enabled() && wmsExposable) {
                     try {
+                        mark();
                         handleLayer(layer);
+                        commit();
                     } catch (Exception e) {
-                        // report what layer we failed on to help the admin locate and fix it
-                        throw new ServiceException(
-                                "Error occurred trying to write out metadata for layer: "
-                                        + layer.getName(), e);
+                        if (skipping) {
+                            reset();
+                            LOGGER.log(
+                                Level.WARNING, 
+                                "Error writing metadata; skipping layer: " + layer.getName(),
+                                e);
+                        } else {
+                            // report what layer we failed on to help the admin locate and fix it
+                            throw new ServiceException(
+                                    "Error occurred trying to write out metadata for layer: "
+                                            + layer.getName(), e);
+                        }
                     }
                 }
             }

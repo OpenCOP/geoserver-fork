@@ -78,6 +78,10 @@ public class KMLSuperOverlayTransformer extends KMLTransformerBase {
             }
 
             start("Document");
+            if (isStandAlone()) {
+                String kmltitle = (String) mapContent.getRequest().getFormatOptions().get("kmltitle");
+                element("name", (kmltitle != null && mapContent.layers().size() <= 1 ? kmltitle : Layer.getTitle()));
+            }
 
             if ("cached".equals(KMLUtils.getSuperoverlayMode(mapContent.getRequest(), wms))) {
                 if (KMLUtils.isRequestGWCCompatible(mapContent, Layer, wms)) {
@@ -378,6 +382,15 @@ public class KMLSuperOverlayTransformer extends KMLTransformerBase {
         }
 
         void encodeNetworkLink(Envelope box, String name, Layer layer) {
+            // check if we are going to get any feature from this layer
+            try {
+                if(!shouldDrawVectorLayer(layer, box)) {
+                    return;
+                }
+            } catch(HttpErrorCodeException e ) {
+                // fine, it means there was no data.... sigh...
+                return;
+            }
             start("NetworkLink");
             element("name", name);
 

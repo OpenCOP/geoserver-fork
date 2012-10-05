@@ -4,17 +4,21 @@ ECQL Reference
 ==============
 
 This section provides a reference for the syntax of the ECQL language.
-The subsections present the major language constructs.
-Each construct is described by listing all syntax options for it
-(which may be defined recursively in terms of the current or other constructs).
+The full language grammar is documented in the the GeoTools `ECQL BNF definition <http://docs.codehaus.org/display/GEOTOOLS/ECQL+Parser+Design>`_ 
 
 Syntax Notes
 ------------
 
-* Keywords are not case-sensitive. 
-* The vertical bar symbol **|** indicates where a choice of keyword can be made.  
-* Brackets **[ ]** show optional syntax.
-* Braces **{ }** show where syntax can be added zero or more times.
+The sections below describe the major language constructs.
+Each construct lists all syntax options for it.
+Each option is defined as a sequence of other constructs, or recursively in terms of itself.
+
+* Symbols which are part of the ECQL language are shown in ``code font``.  
+  All other symbols are part of the grammar description. 
+* ECQL keywords are not case-sensitive. 
+* A vertical bar symbol '**|**' indicates that a choice of keyword can be made.  
+* Brackets '**[** ... **]**' delimit syntax that is optional.
+* Braces '**{** ... **}**' delimit syntax that may be present zero or more times.
  
 
 .. _ecql_cond:
@@ -22,7 +26,7 @@ Syntax Notes
 Condition
 ---------
  
-A filter condition is a boolean-valued predicate, or a logical combination of other conditions.
+A filter condition is a single predicate, or a logical combination of other conditions.
 
 .. list-table::
    :widths: 50 50
@@ -54,8 +58,10 @@ Predicates are boolean-valued expressions which specify relationships between va
      - Comparison operations
    * - :ref:`ecql_expr` **[** ``NOT`` **]** ``BETWEEN`` :ref:`ecql_expr` ``AND`` :ref:`ecql_expr` 
      - Tests whether a value lies in or outside a range (inclusive)
-   * - :ref:`ecql_expr` **[** ``NOT`` **]** ``LIKE`` *like-pattern*
-     - Simple pattern matching.  *like-pattern* uses the ```%`` character as a wild-card
+   * - :ref:`ecql_expr` **[** ``NOT`` **]** ``LIKE`` | ``ILIKE`` *like-pattern*
+     - Simple pattern matching.  
+       *like-pattern* uses the ``%`` character as a wild-card for any number of characters.
+       ``ILIKE`` does case-insensitive matching.
    * - :ref:`ecql_expr` **[** ``NOT`` **]** ``IN (`` :ref:`ecql_expr`  **{** ``,``:ref:`ecql_expr`  **}**  ``)`` 
      - Tests whether an expression value is (not) in a set of values
    * - :ref:`ecql_expr` ``IN (`` :ref:`ecql_literal`  **{** ``,``:ref:`ecql_literal`  **}**  ``)`` 
@@ -98,27 +104,57 @@ Spatial Predicate
 ^^^^^^^^^^^^^^^^^
 
 Spatial predicates specify the relationship between geometric values.
+Topological spatial predicates
+(``INTERSECTS``, ``DISJOINT``, ``CONTAINS``, ``WITHIN``, 
+``TOUCHES`` ``CROSSES``, ``OVERLAPS`` and ``RELATE``)
+are defined in terms of the DE-9IM model described in the 
+OGC `Simple Features for SQL <http://www.opengeospatial.org/standards/sfs>`_ specification.
 
 .. list-table::
    :widths: 50 50
    
    * - **Syntax**
      - **Description**
-   * - ``INTERSECTS`` | ``DISJOINT`` | ``CONTAINS`` | ``WITHIN`` | ``TOUCHES`` | ``CROSSES`` | ``OVERLAPS`` | ``EQUALS`` ``(``:ref:`ecql_expr` ``,`` :ref:`ecql_expr` ``)``
-     - Predicates for standard OGC spatial relationships
-   * - ``RELATE`` ``(`` :ref:`ecql_expr` ``,`` :ref:`ecql_expr` ``,`` *pattern* ``)``
+   * - ``INTERSECTS(``:ref:`ecql_expr` ``,`` :ref:`ecql_expr` ``)``
+     - Tests whether two geometries intersect.
+       The converse of ``DISJOINT`` 
+   * - ``DISJOINT(``:ref:`ecql_expr` ``,`` :ref:`ecql_expr` ``)``
+     - Tests whether two geometries are disjoint.
+       The converse of ``INTERSECTS`` 
+   * - ``CONTAINS(``:ref:`ecql_expr` ``,`` :ref:`ecql_expr` ``)``
+     - Tests whether the first geometry topologically contains the second.
+       The converse of  ``WITHIN`` 
+   * - ``WITHIN(``:ref:`ecql_expr` ``,`` :ref:`ecql_expr` ``)``
+     - Tests whether the first geometry is topologically within the second.
+       The converse of ``CONTAINS``
+   * - ``TOUCHES(``:ref:`ecql_expr` ``,`` :ref:`ecql_expr` ``)``
+     - Tests whether two geometries touch.
+       Geometries touch if they have at least one point in common, but their interiors do not intersect.
+   * - ``CROSSES(``:ref:`ecql_expr` ``,`` :ref:`ecql_expr` ``)``
+     - Tests whether two geometries cross.
+       Geometries cross if they have some but not all interior points in common
+   * - ``OVERLAPS(``:ref:`ecql_expr` ``,`` :ref:`ecql_expr` ``)``
+     - Tests whether two geometries overlap.
+       Geometries overlap if they have the same dimension, have at least one point each not shared by the other, and the intersection of the interiors of the two geometries has the same dimension as the geometries themselves
+   * - ``EQUALS(``:ref:`ecql_expr` ``,`` :ref:`ecql_expr` ``)``
+     - Tests whether two geometries are topologically equal
+   * - ``RELATE(`` :ref:`ecql_expr` ``,`` :ref:`ecql_expr` ``,`` *pattern* ``)``
      - Tests whether geometries have the spatial relationship specified by a DE-9IM matrix *pattern*.
        A DE-9IM pattern is a string of length 9 specified using the characters ``*TF012``.
        Example: ``"1*T***T**"``
-   * - ``DWITHIN`` | ``BEYOND`` ``(`` :ref:`ecql_expr` ``,`` :ref:`ecql_expr` ``,`` *distance* ``,`` *units* ``)``
-     - Tests whether geometries are within (beyond) a distance.
+   * - ``DWITHIN(`` :ref:`ecql_expr` ``,`` :ref:`ecql_expr` ``,`` *distance* ``,`` *units* ``)``
+     - Tests whether the distance between two geometries is no more than the specified distance.
        *distance* is an unsigned numeric value for the distance tolerance.
        *units* is one of ``feet``, ``meters``, ``statute miles``, ``nautical miles``, ``kilometers``      
-   * - ``BBOX (`` :ref:`ecql_expr` ``,`` *Number* ``,`` *Number* ``,`` *Number* ``,`` *Number* **[** ``,`` *CRS* **]** ``)``
+   * - ``BEYOND(`` :ref:`ecql_expr` ``,`` :ref:`ecql_expr` ``,`` *distance* ``,`` *units* ``)``
+     - Similar to ``DWITHIN``, but tests whether the distance between two geometries is greater than the given distance.
+   * - ``BBOX (`` :ref:`ecql_expr` ``,``
+       :ref:`Number <ecql_literal>` ``,`` :ref:`Number <ecql_literal>` ``,`` :ref:`Number <ecql_literal>` ``,`` :ref:`Number <ecql_literal>`
+       [ ``,`` *CRS* ] ``)``
      - Tests whether a geometry intersects a bounding box 
        specified by its minimum and maximum X and Y values.  
-       *CRS* is a string containing an SRS code (the default is *EPSG:4326*)
-   * - ``BBOX (`` :ref:`ecql_expr` ``,`` :ref:`ecql_expr` **|** *Geometry* ``)``
+       The optional *CRS* is a string containing an SRS code (the default is *EPSG:4326*)
+   * - ``BBOX (`` :ref:`ecql_expr` ``,`` :ref:`ecql_expr` **|** :ref:`Geometry <ecql_literal>` ``)``
      - Tests whether a geometry intersects a bounding box 
        specified by a geometric value computed by a function
        or provided by a geometry literal.
@@ -131,6 +167,8 @@ Expression
  
 An expression specifies a attribute, literal, or computed value.  
 The type of the value is determined by the nature of the expression.
+The standard `PEMDAS <http://en.wikipedia.org/wiki/Order_of_operations#Mnemonics>`_
+order of evaluation is used.
  
 .. list-table::
    :widths: 50 50
@@ -138,13 +176,14 @@ The type of the value is determined by the nature of the expression.
    * - **Syntax**
      - **Description**
    * - :ref:`ecql_attr`
-     - Value of a feature attribute
+     - Name of a feature attribute
    * - :ref:`ecql_literal`
      - Literal value
    * - :ref:`ecql_expr`  ``+`` | ``-`` | ``*`` | ``/`` :ref:`ecql_expr`
      - Arithmetic operations
-   * - *function*  ``(`` :ref:`ecql_expr` { ``,`` :ref:`ecql_expr` } ``)``
+   * - *function*  ``(`` [ :ref:`ecql_expr` { ``,`` :ref:`ecql_expr` } ] ``)``
      - Value computed by evaluation of a :ref:`filter function <filter_function_reference>`
+       with zero or more arguments.
    * - ``(`` | ``[`` :ref:`ecql_expr` ``]`` | ``)``
      - Bracketing with ``(`` or ``[`` controls evaluation order
 
@@ -179,10 +218,14 @@ Literals specify constant values of various types.
      - String literal delimited by single quotes.  To include a single quote in the
        string use two single-quotes: ``''``
    * - *Geometry*
-     - Geometry in WKT format.  All standard types are supported:
+     - Geometry in WKT format. 
+       WKT is defined in the OGC `Simple Features for SQL <http://www.opengeospatial.org/standards/sfs>`_ specification.
+       All standard geometry types are supported:
        ``POINT``, ``LINESTRING``, ``POLYGON``, 
        ``MULTIPOINT``, ``MULTILINESTRING``, ``MULTIPOLYGON``, ``GEOMETRYCOLLECTION``.
-       ``ENVELOPE`` is also supported.
+       A custom type of Envelope is also supported 
+       with syntax ``ENVELOPE (`` *x1* *x2* *y1* *y2* ``)``.
+       
    * - *Time*
      - A UTC date/time value in the format ``yyyy-mm-hhThh:mm:ss``.
        The seconds value may have a decimal fraction.
@@ -191,9 +234,10 @@ Literals specify constant values of various types.
    * - *Duration*
      - A time duration specified as ``P`` **[** y ``Y`` m ``M`` d ``D`` **]** ``T`` **[** h ``H`` m ``M`` s ``S`` **]**.  
        The duration can be specified to any desired precision by including 
-       only the required year, month, day, hour, minute and second values.
-       Example: 
-       ``P4Y2M``, 
+       only the required year, month, day, hour, minute and second components.
+       Examples: 
+       ``P1Y2M``, 
+       ``P4Y2M20D``, 
        ``P4Y2M1DT20H3M36S`` 
  
 
@@ -203,7 +247,7 @@ Literals specify constant values of various types.
 Time Period
 ^^^^^^^^^^^
 
-A construct specifying a duration of time, in several different ways.
+Specifies a period of time, in several different formats.
 
 .. list-table::
    :widths: 50 50
@@ -211,10 +255,10 @@ A construct specifying a duration of time, in several different ways.
    * - **Syntax**
      - **Description**
    * - :ref:`Time <ecql_literal>` ``/`` :ref:`Time <ecql_literal>`
-     - Period specified by start and end time
-   * - :ref:`Time <ecql_literal>` ``/`` :ref:`Duration <ecql_literal>`
-     - Period specified by a duration before a given time
+     - Period specified by a start and end time
    * - :ref:`Duration <ecql_literal>` ``/`` :ref:`Time <ecql_literal>`
+     - Period specified by a duration before a given time
+   * - :ref:`Time <ecql_literal>` ``/`` :ref:`Duration <ecql_literal>`
      - Period specified by a duration after a given time
 
 

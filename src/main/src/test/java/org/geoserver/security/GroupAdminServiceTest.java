@@ -3,7 +3,6 @@ package org.geoserver.security;
 import java.io.IOException;
 import java.util.Collections;
 
-import org.geoserver.security.impl.AbstractSecurityServiceTest;
 import org.geoserver.security.impl.GeoServerRole;
 import org.geoserver.security.impl.GeoServerUser;
 import org.geoserver.security.impl.GeoServerUserGroup;
@@ -55,11 +54,12 @@ public class GroupAdminServiceTest extends AbstractSecurityServiceTest {
         ugStore.store();
 
         //grant bob group admin privilege
+        GeoServerRole groupAdminRole = null;
         roleStore = createStore(roleService);
-        roleStore.addRole(GeoServerRole.ADMIN_ROLE);
-        roleStore.addRole(GeoServerRole.GROUP_ADMIN_ROLE);
+        roleStore.addRole(roleStore.createRoleObject("adminRole"));
+        roleStore.addRole(groupAdminRole=roleStore.createRoleObject("groupAdminRole"));
         
-        roleStore.associateRoleToUser(roleStore.getGroupAdminRole(), bob.getUsername());
+        roleStore.associateRoleToUser(groupAdminRole, bob.getUsername());
         roleStore.store();
     }
 
@@ -73,6 +73,8 @@ public class GroupAdminServiceTest extends AbstractSecurityServiceTest {
     public GeoServerRoleService createRoleService(String name) throws Exception {
         XMLRoleServiceConfig config = new XMLRoleServiceConfig();
         config.setName(name);
+        config.setAdminRoleName("adminRole");
+        config.setGroupAdminRoleName("groupAdminRole");
         config.setClassName(XMLRoleService.class.getName());
         config.setCheckInterval(1000);   
         config.setFileName("roles.xml");
@@ -127,15 +129,16 @@ public class GroupAdminServiceTest extends AbstractSecurityServiceTest {
 
     public void testHideAdminRole() throws Exception {
         GeoServerRoleService roleService = getSecurityManager().getActiveRoleService();
-        assertTrue(roleService.getRoles().contains(GeoServerRole.ADMIN_ROLE));
+        GeoServerRole adminRole = roleService.createRoleObject("adminRole");
+        assertTrue(roleService.getRoles().contains(adminRole));
         assertNotNull(roleService.getAdminRole());
-        assertNotNull(roleService.getRoleByName(GeoServerRole.ADMIN_ROLE.getAuthority()));
+        assertNotNull(roleService.getRoleByName("adminRole"));
         
         setAuth();
         roleService = getSecurityManager().getActiveRoleService();
-        assertFalse(roleService.getRoles().contains(GeoServerRole.ADMIN_ROLE));
+        assertFalse(roleService.getRoles().contains(adminRole));
         assertNull(roleService.getAdminRole());
-        assertNull(roleService.getRoleByName(GeoServerRole.ADMIN_ROLE.getAuthority()));
+        assertNull(roleService.getRoleByName("adminRole"));
     }
 
     public void testHideGroups() throws Exception {

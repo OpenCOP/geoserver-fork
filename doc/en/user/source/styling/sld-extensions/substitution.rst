@@ -11,7 +11,7 @@ Variables are specified in WMS ``GetMap`` requests by using the ``env`` request 
   ...&env=name1:value1;name2=value2&... 
 
 In an SLD the variable values are accessed using the ``env`` function. 
-The function retrieves the value specified for a substitution variable in the current request:
+The function retrieves a substitution variable value specified in the current request:
    
 .. code-block:: xml 
    
@@ -19,7 +19,7 @@ The function retrieves the value specified for a substitution variable in the cu
       <ogc:Literal>size</ogc:Literal>
    </ogc:Function>       
    
-A default value can be provided, which will be used if the variable was not specified in the request:
+A default value can be provided.  It will be used if the variable was not specified in the request:
 
 .. code-block:: xml 
    
@@ -29,9 +29,9 @@ A default value can be provided, which will be used if the variable was not spec
    </ogc:Function>  
    
    
-The ``env`` function can be used anywhere an OGC expression is allowed. 
+The ``env`` function can be used in an SLD anywhere an OGC expression is allowed. 
 For example, it can be used in ``CSSParameter`` elements, in size and offset elements, and in rule filter expressions. 
-The GeoServer SLD parser also accepts it in some places where full expressions are not allowed, such as in the ``Mark/WellKnownName`` element.
+It is also accepted in some places where full expressions are not allowed, such as in the ``Mark/WellKnownName`` element.
 
 
 Predefined Variables
@@ -50,20 +50,24 @@ The predefined variables are:
      - **Description**
    * - ``wms_bbox``
      - ``ReferencedEnvelope``
-     - returns the georeferenced extent of the request output
+     - the georeferenced extent of the request output
    * - ``wms_crs``
      - ``CoordinateReferenceSystem``
-     - returns the definition of the output coordinate reference system
+     - the definition of the output coordinate reference system
    * - ``wms_srs``
      - ``String``
-     - returns the code for the output coordinate reference system
+     - the code for the output coordinate reference system
    * - ``wms_width``
      - ``Integer``
-     - returns the width (in pixels) of the output image
+     - the width (in pixels) of the output image
    * - ``wms_height``
      - ``Integer``
-     - returns the height (in pixels) of the output image
+     - the height (in pixels) of the output image
+   * - ``wms_scale_denominator``
+     - ``Integer``
+     - the denominator of the output map scale
 
+     
 
 Example
 -------     

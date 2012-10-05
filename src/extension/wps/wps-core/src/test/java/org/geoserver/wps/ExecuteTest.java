@@ -1,8 +1,10 @@
 package org.geoserver.wps;
 
 import static org.custommonkey.xmlunit.XMLAssert.*;
+import static org.geoserver.data.test.MockData.*;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -13,10 +15,16 @@ import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import javax.xml.namespace.QName;
+
 import net.opengis.ows11.BoundingBoxType;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.custommonkey.xmlunit.XMLUnit;
 import org.custommonkey.xmlunit.XpathEngine;
+import org.custommonkey.xmlunit.exceptions.XpathException;
+import org.geoserver.data.test.MockData;
 import org.geoserver.test.RemoteOWSTestSupport;
 import org.geotools.data.collection.ListFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureIterator;
@@ -40,6 +48,32 @@ import com.vividsolutions.jts.geom.Polygon;
 import com.vividsolutions.jts.io.WKTReader;
 
 public class ExecuteTest extends WPSTestSupport {
+
+    @Override
+    protected void populateDataDirectory(MockData dataDirectory)
+            throws Exception {
+        super.populateDataDirectory(dataDirectory);
+        String pgf  = PRIMITIVEGEOFEATURE.getLocalPart();
+        dataDirectory.addPropertiesType(new QName("http://foo.org", pgf, "foo" ), 
+            MockData.class.getResource(pgf + ".properties"), null);
+    }
+
+    @Override
+    protected void oneTimeSetUp() throws Exception {
+        super.oneTimeSetUp();
+        WPSInfo wps = getGeoServer().getService(WPSInfo.class);
+        // want at least two asynchronous processes to test concurrency
+        wps.setMaxAsynchronousProcesses(Math.max(2, wps.getMaxAsynchronousProcesses()));
+        getGeoServer().save(wps);
+    }
+
+    @Override
+    protected void setUpInternal() throws Exception {
+        super.setUpInternal();
+        
+        // make extra sure we don't have anything else going
+        MonkeyProcess.clearCommands();
+    }
     
     /* TODO GET requests A.4.4.1 */
 
@@ -186,7 +220,7 @@ public class ExecuteTest extends WPSTestSupport {
               "<ows:Identifier>gs:BufferFeatureCollection</ows:Identifier>" + 
                "<wps:DataInputs>" + 
                   "<wps:Input>" + 
-                      "<ows:Identifier>feature collection</ows:Identifier>" + 
+                      "<ows:Identifier>features</ows:Identifier>" + 
                       "<wps:Data>" +
                         "<wps:ComplexData>" + 
                              readFileIntoString("states-FeatureCollection.xml") + 
@@ -194,13 +228,13 @@ public class ExecuteTest extends WPSTestSupport {
                       "</wps:Data>" +     
                   "</wps:Input>" + 
                   "<wps:Input>" + 
-                     "<ows:Identifier>width of the buffer</ows:Identifier>" + 
+                     "<ows:Identifier>distance</ows:Identifier>" + 
                      "<wps:Data>" + 
                        "<wps:LiteralData>10</wps:LiteralData>" + 
                      "</wps:Data>" + 
                   "</wps:Input>" + 
                   "<wps:Input>" + 
-                    "<ows:Identifier>name of the layer attribute containing the width of the buffer</ows:Identifier>" + 
+                    "<ows:Identifier>attributeName</ows:Identifier>" + 
                     "<wps:Data>" + 
                       "<wps:LiteralData></wps:LiteralData>" + 
                     "</wps:Data>" + 
@@ -232,7 +266,7 @@ public class ExecuteTest extends WPSTestSupport {
               "<ows:Identifier>gs:BufferFeatureCollection</ows:Identifier>" + 
                "<wps:DataInputs>" + 
                   "<wps:Input>" + 
-                      "<ows:Identifier>feature collection</ows:Identifier>" + 
+                      "<ows:Identifier>features</ows:Identifier>" + 
                       "<wps:Data>" +
                         "<wps:ComplexData mimeType=\"text/xml; subtype=wfs-collection/1.0\">" + 
                              readFileIntoString("restricted-FeatureCollection.xml") + 
@@ -240,7 +274,7 @@ public class ExecuteTest extends WPSTestSupport {
                       "</wps:Data>" +     
                   "</wps:Input>" + 
                   "<wps:Input>" + 
-                     "<ows:Identifier>width of the buffer</ows:Identifier>" + 
+                     "<ows:Identifier>distance</ows:Identifier>" + 
                      "<wps:Data>" + 
                        "<wps:LiteralData>1000</wps:LiteralData>" + 
                      "</wps:Data>" + 
@@ -269,7 +303,7 @@ public class ExecuteTest extends WPSTestSupport {
     
     public void testFeatureCollectionInlineKVP() throws Exception { 
         String request = "wps?service=WPS&version=1.0.0&request=Execute&Identifier=gs:BufferFeatureCollection" +
-            "&DataInputs=" + urlEncode("feature collection=" + readFileIntoString("states-FeatureCollection.xml") + "@mimetype=application/wfs-collection-1.1;width of the buffer=10") +
+            "&DataInputs=" + urlEncode("features=" + readFileIntoString("states-FeatureCollection.xml") + "@mimetype=application/wfs-collection-1.1;distance=10") +
             "&ResponseDocument=" + urlEncode("result");
         
         Document d = getAsDOM(request);
@@ -289,7 +323,7 @@ public class ExecuteTest extends WPSTestSupport {
               "<ows:Identifier>gs:BufferFeatureCollection</ows:Identifier>" + 
                "<wps:DataInputs>" + 
                   "<wps:Input>" + 
-                      "<ows:Identifier>feature collection</ows:Identifier>" + 
+                      "<ows:Identifier>features</ows:Identifier>" + 
                       "<wps:Data>" +
                         "<wps:ComplexData mimeType=\"text/xml; subtype=wfs-collection/1.0\">" + 
                              readFileIntoString("restricted-FeatureCollection.xml") + 
@@ -297,7 +331,7 @@ public class ExecuteTest extends WPSTestSupport {
                       "</wps:Data>" +     
                   "</wps:Input>" + 
                   "<wps:Input>" + 
-                     "<ows:Identifier>width of the buffer</ows:Identifier>" + 
+                     "<ows:Identifier>distance</ows:Identifier>" + 
                      "<wps:Data>" + 
                        "<wps:LiteralData>1000</wps:LiteralData>" + 
                      "</wps:Data>" + 
@@ -328,8 +362,8 @@ public class ExecuteTest extends WPSTestSupport {
     
     public void testReferenceOutputKVP() throws Exception { 
         String request = "wps?service=WPS&version=1.0.0&request=Execute&Identifier=gs:BufferFeatureCollection" +
-            "&DataInputs=" + urlEncode("feature collection=" + readFileIntoString("states-FeatureCollection.xml") + 
-            "@mimetype=application/wfs-collection-1.1;width of the buffer=10") +
+            "&DataInputs=" + urlEncode("features=" + readFileIntoString("states-FeatureCollection.xml") + 
+            "@mimetype=application/wfs-collection-1.1;distance=10") +
             "&ResponseDocument=" + urlEncode("result=@asReference=true");
         
         Document d = getAsDOM(request);
@@ -356,12 +390,12 @@ public class ExecuteTest extends WPSTestSupport {
               "<ows:Identifier>gs:BufferFeatureCollection</ows:Identifier>" + 
                "<wps:DataInputs>" + 
                   "<wps:Input>" + 
-                      "<ows:Identifier>feature collection</ows:Identifier>" + 
+                      "<ows:Identifier>features</ows:Identifier>" + 
                       "  <wps:Reference mimeType=\"text/xml; subtype=wfs-collection/1.1\" " +
                       "xlink:href=\"" + collectionURL.toExternalForm() + "\"/>\n" + 
                   "</wps:Input>" + 
                   "<wps:Input>" + 
-                     "<ows:Identifier>width of the buffer</ows:Identifier>" + 
+                     "<ows:Identifier>distance</ows:Identifier>" + 
                      "<wps:Data>" + 
                        "<wps:LiteralData>10</wps:LiteralData>" + 
                      "</wps:Data>" + 
@@ -390,8 +424,8 @@ public class ExecuteTest extends WPSTestSupport {
     public void testFeatureCollectionFileReferenceKVP() throws Exception { 
         URL collectionURL = getClass().getResource("states-FeatureCollection.xml");
         String request = "wps?service=WPS&version=1.0.0&request=Execute&Identifier=gs:BufferFeatureCollection" +
-            "&DataInputs=" + urlEncode("feature collection=@mimetype=application/wfs-collection-1.1@xlink:href=" 
-                    + collectionURL.toExternalForm() + ";width of the buffer=10") + "&ResponseDocument=" + urlEncode("result");
+            "&DataInputs=" + urlEncode("features=@mimetype=application/wfs-collection-1.1@xlink:href=" 
+                    + collectionURL.toExternalForm() + ";distance=10") + "&ResponseDocument=" + urlEncode("result");
         
         Document d = getAsDOM(request);
         // print(d);
@@ -410,7 +444,7 @@ public class ExecuteTest extends WPSTestSupport {
         "<ows:Identifier>gs:BufferFeatureCollection</ows:Identifier>" + 
          "<wps:DataInputs>" + 
             "<wps:Input>" + 
-                "<ows:Identifier>feature collection</ows:Identifier>" + 
+                "<ows:Identifier>features</ows:Identifier>" + 
                 "<wps:Data>" +
                   "<wps:ComplexData mimeType=\"application/json\"><![CDATA[" + 
                        readFileIntoString("states-FeatureCollection.json") + 
@@ -418,7 +452,7 @@ public class ExecuteTest extends WPSTestSupport {
                 "</wps:Data>" +     
             "</wps:Input>" + 
             "<wps:Input>" + 
-               "<ows:Identifier>width of the buffer</ows:Identifier>" + 
+               "<ows:Identifier>distance</ows:Identifier>" + 
                "<wps:Data>" + 
                  "<wps:LiteralData>10</wps:LiteralData>" + 
                "</wps:Data>" + 
@@ -446,7 +480,7 @@ public class ExecuteTest extends WPSTestSupport {
         "<ows:Identifier>gs:BufferFeatureCollection</ows:Identifier>" + 
          "<wps:DataInputs>" + 
          "    <wps:Input>\n" + 
-                "<ows:Identifier>feature collection</ows:Identifier>" + 
+                "<ows:Identifier>features</ows:Identifier>" + 
                 "<wps:Data>" +
                   "<wps:ComplexData>" + 
                       readFileIntoString("states-FeatureCollection.xml") + 
@@ -454,7 +488,7 @@ public class ExecuteTest extends WPSTestSupport {
                 "</wps:Data>" +
             "</wps:Input>" + 
             "<wps:Input>" + 
-               "<ows:Identifier>width of the buffer</ows:Identifier>" + 
+               "<ows:Identifier>distance</ows:Identifier>" + 
                "<wps:Data>" + 
                  "<wps:LiteralData>10</wps:LiteralData>" + 
                "</wps:Data>" + 
@@ -751,8 +785,8 @@ public class ExecuteTest extends WPSTestSupport {
     
     public void testProcessFailure() throws Exception {
         // have the monkey throw an exception 
-        MonkeyProcess.exception(new ProcessException("Sorry dude, things went pear shaped..."), false);
-        String request = "wps?service=WPS&version=1.0.0&request=Execute&Identifier=gs:Monkey";
+        MonkeyProcess.exception("x1", new ProcessException("Sorry dude, things went pear shaped..."), false);
+        String request = "wps?service=WPS&version=1.0.0&request=Execute&Identifier=gs:Monkey&DataInputs=" + urlEncode("id=x1");
         Document dom = getAsDOM(request);
         checkValidationErrors(dom);
         assertXpathExists("//wps:ProcessFailed", dom);
@@ -762,7 +796,7 @@ public class ExecuteTest extends WPSTestSupport {
     
     public void testStoredNoStatus() throws Exception {
         // submit asynch request with no updates
-        String request = "wps?service=WPS&version=1.0.0&request=Execute&Identifier=gs:Monkey&storeExecuteResponse=true";
+        String request = "wps?service=WPS&version=1.0.0&request=Execute&Identifier=gs:Monkey&storeExecuteResponse=true&DataInputs=" + urlEncode("id=x2");
         Document dom = getAsDOM(request);
         assertXpathExists("//wps:ProcessAccepted", dom);
         XpathEngine xpath = XMLUnit.newXpathEngine();
@@ -770,14 +804,14 @@ public class ExecuteTest extends WPSTestSupport {
         String statusLocation = fullStatusLocation.substring(fullStatusLocation.indexOf('?') - 3);
         
         // we move the clock forward, but we asked no status, nothing should change
-        MonkeyProcess.progress(0.5f, true);
+        MonkeyProcess.progress("x2", 50f, true);
         dom = getAsDOM(statusLocation);
         // print(dom);
         assertXpathExists("//wps:ProcessAccepted", dom);
         
         // now schedule the exit and wait for it to exit
         ListFeatureCollection fc = collectionOfThings();
-        MonkeyProcess.exit(fc, true);
+        MonkeyProcess.exit("x2", fc, true);
         dom = waitForProcessEnd(statusLocation, 60);
         assertXpathExists("//wps:ProcessSucceeded", dom);
     }
@@ -794,49 +828,158 @@ public class ExecuteTest extends WPSTestSupport {
     
     public void testStoredWithStatus() throws Exception {
         // submit asynch request with no updates
-        String request = "wps?service=WPS&version=1.0.0&request=Execute&Identifier=gs:Monkey&storeExecuteResponse=true&status=true";
-        Document dom = getAsDOM(request);
-        assertXpathExists("//wps:ProcessAccepted", dom);
-        XpathEngine xpath = XMLUnit.newXpathEngine();
-        String fullStatusLocation = xpath.evaluate("//wps:ExecuteResponse/@statusLocation", dom);
-        String statusLocation = fullStatusLocation.substring(fullStatusLocation.indexOf('?') - 3);
+        String statusLocation = submitMonkey("x3");
         
         // we move the clock forward, but we asked no status, nothing should change
-        MonkeyProcess.progress(0.1f, true);
-        dom = getAsDOM(statusLocation);
-        // print(dom);
+        MonkeyProcess.progress("x3", 0.1f, true);
+        Document dom = getAsDOM(statusLocation);
+        print(dom);
         assertXpathExists("//wps:ProcessStarted", dom);
         assertXpathEvaluatesTo("" + Math.round(0.66 * 10), "//wps:ProcessStarted/@percentCompleted", dom);
         
         // we move the clock forward, but we asked no status, nothing should change
-        MonkeyProcess.progress(0.5f, true);
+        MonkeyProcess.progress("x3", 0.5f, true);
         dom = getAsDOM(statusLocation);
         // print(dom);
         assertXpathExists("//wps:ProcessStarted", dom);
         assertXpathEvaluatesTo("" + Math.round(0.66 * 50), "//wps:ProcessStarted/@percentCompleted", dom);
         
         // now schedule the exit and wait for it to exit
-        MonkeyProcess.exit(collectionOfThings(), true);
+        MonkeyProcess.exit("x3", collectionOfThings(), true);
         dom = waitForProcessEnd(statusLocation, 60);
         // print(dom);
         assertXpathExists("//wps:ProcessSucceeded", dom);
     }
     
+    /**
+     * http://jira.codehaus.org/browse/GEOS-5208
+     * @throws Exception
+     */
+    public void testChainedProgress() throws Exception {
+        String request = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
+        		"<wps:Execute version=\"1.0.0\" service=\"WPS\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns=\"http://www.opengis.net/wps/1.0.0\" xmlns:wfs=\"http://www.opengis.net/wfs\" xmlns:wps=\"http://www.opengis.net/wps/1.0.0\" xmlns:ows=\"http://www.opengis.net/ows/1.1\" xmlns:gml=\"http://www.opengis.net/gml\" xmlns:ogc=\"http://www.opengis.net/ogc\" xmlns:wcs=\"http://www.opengis.net/wcs/1.1.1\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xsi:schemaLocation=\"http://www.opengis.net/wps/1.0.0 http://schemas.opengis.net/wps/1.0.0/wpsAll.xsd\">\n" + 
+        		"  <ows:Identifier>gs:CollectGeometries</ows:Identifier>\n" + 
+        		"  <wps:DataInputs>\n" + 
+        		"    <wps:Input>\n" + 
+        		"      <ows:Identifier>features</ows:Identifier>\n" + 
+        		"      <wps:Reference mimeType=\"text/xml; subtype=wfs-collection/1.0\" xlink:href=\"http://geoserver/wps\" method=\"POST\">\n" + 
+        		"        <wps:Body>\n" + 
+        		"          <wps:Execute version=\"1.0.0\" service=\"WPS\">\n" + 
+        		"            <ows:Identifier>gs:Monkey</ows:Identifier>\n" + 
+        		"            <wps:DataInputs>\n" + 
+        		"              <wps:Input>\n" + 
+        		"                <ows:Identifier>id</ows:Identifier>\n" + 
+        		"                <wps:Data>\n" + 
+        		"                  <wps:LiteralData>chained-monkey</wps:LiteralData>\n" + 
+        		"                </wps:Data>\n" + 
+        		"              </wps:Input>\n" + 
+        		"            </wps:DataInputs>\n" + 
+        		"            <wps:ResponseForm>\n" + 
+        		"              <wps:RawDataOutput mimeType=\"text/xml; subtype=gml/3.1.1\">\n" + 
+        		"                <ows:Identifier>result</ows:Identifier>\n" + 
+        		"              </wps:RawDataOutput>\n" + 
+        		"            </wps:ResponseForm>\n" + 
+        		"          </wps:Execute>\n" + 
+        		"        </wps:Body>\n" + 
+        		"      </wps:Reference>\n" + 
+        		"    </wps:Input>\n" + 
+        		"  </wps:DataInputs>\n" + 
+        		"  <wps:ResponseForm>\n" + 
+        		"    <wps:RawDataOutput mimeType=\"application/wkt\">\n" + 
+        		"      <ows:Identifier>result</ows:Identifier>\n" + 
+        		"    </wps:RawDataOutput>\n" + 
+        		"  </wps:ResponseForm>\n" + 
+        		"</wps:Execute>";
+        
+        MonkeyProcess.progress("chained-monkey", 0.1f, false);
+        MonkeyProcess.exit("chained-monkey", collectionOfThings(), false);
+        MockHttpServletResponse response = postAsServletResponse("wfs", request);
+        assertEquals("application/wkt", response.getContentType());
+        assertEquals("GEOMETRYCOLLECTION EMPTY", response.getOutputStreamContent());
+    }
+    
     public void testAsynchFailEncode() throws Exception {
         // submit asynch request with no updates
-        String request = "wps?service=WPS&version=1.0.0&request=Execute&Identifier=gs:Monkey&storeExecuteResponse=true&status=true";
+        String statusLocation = submitMonkey("x5");
+        
+        // now schedule the exit and wait for it to exit
+        MonkeyProcess.exit("x5", bombOutCollection(), true);
+        Document dom = waitForProcessEnd(statusLocation, 60);
+        // print(dom);
+        assertXpathExists("//wps:ProcessFailed", dom);
+    }
+    
+    public void testConcurrentRequests() throws Exception {
+        // submit first
+        String statusLocation1 = submitMonkey("one");
+        String statusLocation2 = submitMonkey("two");
+        
+        // make the report progress
+        MonkeyProcess.progress("one", 0.1f, true);
+        MonkeyProcess.progress("two", 0.1f, true);
+        
+        // make sure both were started and are running (the 
+        assertProgress(statusLocation1, "7");
+        assertProgress(statusLocation2, "7");
+        
+        // now schedule the exit and wait for it to exit
+        MonkeyProcess.exit("one", collectionOfThings(), true);
+        MonkeyProcess.exit("two", collectionOfThings(), true);
+        
+        Document dom = waitForProcessEnd(statusLocation1, 60);
+        // print(dom);
+        assertXpathExists("//wps:ProcessSucceeded", dom);
+        dom = waitForProcessEnd(statusLocation2, 60);
+        assertXpathExists("//wps:ProcessSucceeded", dom);
+    }
+
+    public void testInlineGetFeatureNameClash() throws Exception {
+        assertNotNull(getCatalog().getLayerByName("foo:PrimitiveGeoFeature"));
+        assertNotNull(getCatalog().getLayerByName("sf:PrimitiveGeoFeature"));
+
+        String request = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + 
+                "<wps:Execute version=\"1.0.0\" service=\"WPS\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns=\"http://www.opengis.net/wps/1.0.0\" xmlns:wfs=\"http://www.opengis.net/wfs\" xmlns:wps=\"http://www.opengis.net/wps/1.0.0\" xmlns:ows=\"http://www.opengis.net/ows/1.1\" xmlns:gml=\"http://www.opengis.net/gml\" xmlns:ogc=\"http://www.opengis.net/ogc\" xmlns:wcs=\"http://www.opengis.net/wcs/1.1.1\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xsi:schemaLocation=\"http://www.opengis.net/wps/1.0.0 http://schemas.opengis.net/wps/1.0.0/wpsAll.xsd\">\n" + 
+                "  <ows:Identifier>gs:Bounds</ows:Identifier>\n" + 
+                "  <wps:DataInputs>\n" + 
+                "    <wps:Input>\n" + 
+                "      <ows:Identifier>features</ows:Identifier>\n" + 
+                "      <wps:Reference mimeType=\"text/xml; subtype=wfs-collection/1.0\" xlink:href=\"http://geoserver/wfs\" method=\"POST\">\n" + 
+                "        <wps:Body>\n" + 
+                "          <wfs:GetFeature service=\"WFS\" version=\"1.0.0\" xmlns:foo='http://foo.org'>\n" + 
+                "            <wfs:Query typeName=\"foo:PrimitiveGeoFeature\"/>\n" + 
+                "          </wfs:GetFeature>\n" + 
+                "        </wps:Body>\n" + 
+                "      </wps:Reference>\n" + 
+                "    </wps:Input>\n" + 
+                "  </wps:DataInputs>\n" + 
+                "  <wps:ResponseForm>\n" + 
+                "    <wps:RawDataOutput>\n" + 
+                "      <ows:Identifier>bounds</ows:Identifier>\n" + 
+                "    </wps:RawDataOutput>\n" + 
+                "  </wps:ResponseForm>\n" + 
+                "</wps:Execute>";
+        
+        Document dom = postAsDOM(root(), request);
+        assertEquals("ows:BoundingBox", dom.getDocumentElement().getNodeName());
+    }
+
+    private void assertProgress(String statusLocation, String progress) throws Exception {
+        Document dom = getAsDOM(statusLocation);
+        // print(dom);
+        assertXpathExists("//wps:ProcessStarted", dom);
+        assertXpathEvaluatesTo(progress, "//wps:ProcessStarted/@percentCompleted", dom);
+    }
+    
+    private String submitMonkey(String id) throws Exception, XpathException {
+        String request = "wps?service=WPS&version=1.0.0&request=Execute&Identifier=gs:Monkey&storeExecuteResponse=true&status=true&DataInputs=" + urlEncode("id=" + id);
         Document dom = getAsDOM(request);
         assertXpathExists("//wps:ProcessAccepted", dom);
         XpathEngine xpath = XMLUnit.newXpathEngine();
         String fullStatusLocation = xpath.evaluate("//wps:ExecuteResponse/@statusLocation", dom);
         String statusLocation = fullStatusLocation.substring(fullStatusLocation.indexOf('?') - 3);
-        
-        // now schedule the exit and wait for it to exit
-        MonkeyProcess.exit(bombOutCollection(), true);
-        dom = waitForProcessEnd(statusLocation, 60);
-        // print(dom);
-        assertXpathExists("//wps:ProcessFailed", dom);
+        return statusLocation;
     }
+    
     
     private ListFeatureCollection bombOutCollection() {
         SimpleFeatureTypeBuilder tb = new SimpleFeatureTypeBuilder();

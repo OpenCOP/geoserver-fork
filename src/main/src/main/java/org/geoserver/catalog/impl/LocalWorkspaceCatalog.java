@@ -78,7 +78,12 @@ public class LocalWorkspaceCatalog extends AbstractCatalogDecorator implements C
 
     @Override
     public LayerInfo getLayerByName(Name name) {
-        return getLayerByName(name.getLocalPart());
+        if (LocalWorkspace.get() != null) {
+            //if local workspace active drop the prefix
+            return getLayerByName(name.getLocalPart());
+        } else {
+            return super.getLayerByName(name);
+        }
     }
 
     @Override
@@ -134,7 +139,7 @@ public class LocalWorkspaceCatalog extends AbstractCatalogDecorator implements C
             if (layerGroup != null) {
                 return wrap(layerGroup);
             }
-            //else fall back on unqualified lookup
+            // else fall back on unqualified lookup
         }
 
         return wrap(super.getLayerGroupByName(name));

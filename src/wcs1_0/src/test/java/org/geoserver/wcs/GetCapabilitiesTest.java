@@ -1,10 +1,17 @@
 package org.geoserver.wcs;
 
 import static org.custommonkey.xmlunit.XMLAssert.assertXpathEvaluatesTo;
+import static org.geoserver.data.test.MockData.*;
 import junit.framework.Test;
 
+import org.geoserver.catalog.Catalog;
+import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.DimensionPresentation;
+import org.geoserver.catalog.MetadataLinkInfo;
 import org.geoserver.catalog.ResourceInfo;
+import org.geoserver.catalog.CoverageStoreInfo;
+import org.geoserver.config.GeoServerInfo;
+import org.geoserver.config.ResourceErrorHandling;
 import org.geoserver.data.test.MockData;
 import org.geoserver.wcs.test.WCSTestSupport;
 import org.vfny.geoserver.wcs.WcsException.WcsExceptionCode;
@@ -13,18 +20,6 @@ import org.w3c.dom.Node;
 
 public class GetCapabilitiesTest extends WCSTestSupport {
 
-
-    /**
-     * This is a READ ONLY TEST so we can use one time setup
-     */
-    public static Test suite() {
-        return new OneTimeTestSetup(new GetCapabilitiesTest());
-    }
-
-    @Override
-    protected void oneTimeSetUp() throws Exception {
-        super.oneTimeSetUp();
-    }
 
     // @Override
     // protected String getDefaultLogConfiguration() {
@@ -35,6 +30,25 @@ public class GetCapabilitiesTest extends WCSTestSupport {
         Document dom = getAsDOM(BASEPATH + "?request=GetCapabilities&service=WCS&version=1.0.0");
         // print(dom);
         checkValidationErrors(dom, WCS10_GETCAPABILITIES_SCHEMA);
+    }
+    
+    public void testSkipMisconfigured() throws Exception {
+        // enable skipping of misconfigured layers
+        GeoServerInfo global = getGeoServer().getGlobal();
+        global.setResourceErrorHandling(ResourceErrorHandling.SKIP_MISCONFIGURED_LAYERS);
+        getGeoServer().save(global);
+
+        // manually misconfigure one layer
+        CoverageStoreInfo cvInfo = getCatalog().getCoverageStoreByName(MockData.TASMANIA_DEM.getLocalPart());
+        cvInfo.setURL("file:///I/AM/NOT/THERE");
+        getCatalog().save(cvInfo);
+        
+        // check we got everything but that specific layer, and that the output is still schema compliant
+        Document dom = getAsDOM(BASEPATH + "?request=GetCapabilities&service=WCS&version=1.0.0");
+        checkValidationErrors(dom, WCS10_DESCRIBECOVERAGE_SCHEMA);
+        
+        int count = getCatalog().getCoverages().size();
+        assertEquals(count - 1, dom.getElementsByTagName("wcs:CoverageOfferingBrief").getLength());
     }
 
     public void testNoServiceContactInfo() throws Exception {
@@ -139,6 +153,27 @@ public class GetCapabilitiesTest extends WCSTestSupport {
         assertXpathEvaluatesTo("1", "count(//wcs:Service)", dom);
         assertXpathEvaluatesTo("0", "count(//wcs:Capability)", dom);
         assertXpathEvaluatesTo("0", "count(//wcs:ContentMetadata)", dom);
+    }
+    
+    public void testMetadataLinks() throws Exception {
+        Catalog catalog = getCatalog();
+        CoverageInfo ci = catalog.getCoverageByName(getLayerId(TASMANIA_DEM));
+        MetadataLinkInfo ml = catalog.getFactory().createMetadataLink();
+        ml.setContent("http://www.geoserver.org/tasmania/dem.xml");
+        ml.setMetadataType("FGDC");
+        ml.setAbout("http://www.geoserver.org");
+        ci.getMetadataLinks().add(ml);
+        catalog.save(ci);
+        
+        Document dom = getAsDOM(BASEPATH
+                + "?request=GetCapabilities&service=WCS&version=1.0.0");
+        print(dom);
+        checkValidationErrors(dom, WCS10_GETCAPABILITIES_SCHEMA);
+        String xpathBase = "//wcs:CoverageOfferingBrief[wcs:name = '" + getLayerId(TASMANIA_DEM) + "']/wcs:metadataLink";
+        assertXpathEvaluatesTo("http://www.geoserver.org", xpathBase + "/@about", dom);
+        assertXpathEvaluatesTo("FGDC", xpathBase + "/@metadataType", dom);
+        assertXpathEvaluatesTo("simple", xpathBase + "/@xlink:type", dom);
+        assertXpathEvaluatesTo("http://www.geoserver.org/tasmania/dem.xml", xpathBase + "/@xlink:href", dom);
     }
     
     public void testWorkspaceQualified() throws Exception {

@@ -66,9 +66,8 @@ public class JDBCTestSupport {
         return property != null && "false".equals(property.toLowerCase());                 
     }
     
-    protected static GeoServerUserGroupService createH2UserGroupService(String serviceName, 
-        GeoServerSecurityManager securityManager) throws Exception {
-        
+    protected static JDBCUserGroupServiceConfig createConfigObjectH2(String serviceName, 
+                    GeoServerSecurityManager securityManager) {
         JDBCUserGroupServiceConfig config = new JDBCUserGroupServiceConfig();           
         config.setName(serviceName);
         config.setConnectURL("jdbc:h2:target/h2/security");
@@ -82,27 +81,35 @@ public class JDBCTestSupport {
         config.setPasswordEncoderName(
             securityManager.loadPasswordEncoder(GeoServerDigestPasswordEncoder.class).getName());
         config.setPasswordPolicyName(PasswordValidator.DEFAULT_NAME);
-
-        securityManager.saveUserGroupService(config);
-
+        return config;
+        
+    }
+    
+    protected static GeoServerUserGroupService createH2UserGroupService(String serviceName, 
+        GeoServerSecurityManager securityManager) throws Exception {        
+        securityManager.saveUserGroupService(createConfigObjectH2(serviceName, securityManager));
         return securityManager.loadUserGroupService(serviceName);
     }
     
+    
+    protected static JDBCUserGroupServiceConfig createConfigObjectH2Jndi( String serviceName ,GeoServerSecurityManager securityManager) {
+        JDBCUserGroupServiceConfig config = new JDBCUserGroupServiceConfig();           
+        config.setName(serviceName);
+        config.setJndi(true);
+        config.setJndiName("ds.h2");
+        config.setClassName(JDBCUserGroupService.class.getName());
+        config.setPropertyFileNameDDL(JDBCUserGroupService.DEFAULT_DDL_FILE);
+        config.setPropertyFileNameDML(JDBCUserGroupService.DEFAULT_DML_FILE);
+        config.setCreatingTables(false);
+        config.setPasswordEncoderName(
+            securityManager.loadPasswordEncoder(GeoServerDigestPasswordEncoder.class).getName());
+        config.setPasswordPolicyName(PasswordValidator.DEFAULT_NAME);
+        return config;
+        
+    }
     protected static GeoServerUserGroupService createH2UserGroupServiceFromJNDI(String serviceName, 
-            GeoServerSecurityManager securityManager) throws Exception {
-            
-            JDBCUserGroupServiceConfig config = new JDBCUserGroupServiceConfig();           
-            config.setName(serviceName);
-            config.setJndi(true);
-            config.setJndiName("ds.h2");
-            config.setClassName(JDBCUserGroupService.class.getName());
-            config.setPropertyFileNameDDL(JDBCUserGroupService.DEFAULT_DDL_FILE);
-            config.setPropertyFileNameDML(JDBCUserGroupService.DEFAULT_DML_FILE);
-            config.setCreatingTables(false);
-            config.setPasswordEncoderName(
-                securityManager.loadPasswordEncoder(GeoServerDigestPasswordEncoder.class).getName());
-            config.setPasswordPolicyName(PasswordValidator.DEFAULT_NAME);
-            securityManager.saveUserGroupService(config);
+            GeoServerSecurityManager securityManager) throws Exception {            
+            securityManager.saveUserGroupService(createConfigObjectH2Jndi(serviceName, securityManager));
             return securityManager.loadUserGroupService(serviceName);
         }
 
@@ -121,7 +128,6 @@ public class JDBCTestSupport {
         config.setPropertyFileNameDDL(JDBCRoleService.DEFAULT_DDL_FILE);
         config.setPropertyFileNameDML(JDBCRoleService.DEFAULT_DML_FILE);
         config.setCreatingTables(false);
-        config.setAdminRoleName(GeoServerRole.ADMIN_ROLE.getAuthority());
         securityManager.saveRoleService(config);
         return securityManager.loadRoleService(serviceName);
     }
@@ -138,7 +144,6 @@ public class JDBCTestSupport {
             config.setPropertyFileNameDDL(JDBCRoleService.DEFAULT_DDL_FILE);
             config.setPropertyFileNameDML(JDBCRoleService.DEFAULT_DML_FILE);
             config.setCreatingTables(false);
-            config.setAdminRoleName(GeoServerRole.ADMIN_ROLE.getAuthority());
             securityManager.saveRoleService(config);
             return securityManager.loadRoleService(serviceName);
         }
@@ -159,7 +164,6 @@ public class JDBCTestSupport {
         config.setUserName(props.getProperty("user") == null ? props.getProperty("username") : props.getProperty("user"));
         config.setPassword(props.getProperty("password"));            
         config.setClassName(JDBCRoleService.class.getName());
-        config.setAdminRoleName(GeoServerRole.ADMIN_ROLE.getAuthority());
         config.setCreatingTables(false);
         if ("mysql".equals(fixtureId)) {
             config.setPropertyFileNameDDL("rolesddl.mysql.xml");            
@@ -172,9 +176,7 @@ public class JDBCTestSupport {
         return securityManager.loadRoleService(fixtureId);
     }
     
-    static protected GeoServerUserGroupService createUserGroupService(String fixtureId,
-        LiveDbmsDataSecurity data, GeoServerSecurityManager securityManager) throws Exception {
-        
+    static protected JDBCUserGroupServiceConfig createConfigObject(String fixtureId,LiveDbmsDataSecurity data,GeoServerSecurityManager securityManager) throws Exception {
         JDBCUserGroupServiceConfig config = new
         JDBCUserGroupServiceConfig();
         
@@ -196,7 +198,12 @@ public class JDBCTestSupport {
             config.setPropertyFileNameDDL(JDBCUserGroupService.DEFAULT_DDL_FILE);
         }
         config.setPropertyFileNameDML(JDBCUserGroupService.DEFAULT_DML_FILE);
-        securityManager.saveUserGroupService(config);
+        return config;
+        
+    }
+    static protected GeoServerUserGroupService createUserGroupService(String fixtureId,
+        LiveDbmsDataSecurity data, GeoServerSecurityManager securityManager) throws Exception {        
+        securityManager.saveUserGroupService(createConfigObject(fixtureId, data, securityManager));
         return securityManager.loadUserGroupService(fixtureId);
     }
 

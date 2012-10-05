@@ -2,11 +2,15 @@ package org.geoserver.wcs;
 
 import static org.custommonkey.xmlunit.XMLAssert.*;
 import static org.geoserver.data.test.MockData.*;
-import junit.framework.Test;
 
 import org.custommonkey.xmlunit.XMLUnit;
 import org.custommonkey.xmlunit.XpathEngine;
+import org.geoserver.catalog.Catalog;
+import org.geoserver.catalog.CoverageInfo;
 import org.geoserver.catalog.LayerInfo;
+import org.geoserver.catalog.MetadataLinkInfo;
+import org.geoserver.config.GeoServerInfo;
+import org.geoserver.config.ResourceErrorHandling;
 import org.geoserver.config.impl.ContactInfoImpl;
 import org.geoserver.data.test.MockData;
 import org.geoserver.wcs.test.WCSTestSupport;
@@ -16,19 +20,6 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 public class GetCapabilitiesTest extends WCSTestSupport {
-    
-    /**
-     * This is a READ ONLY TEST so we can use one time setup
-     */
-    public static Test suite() {
-        return new OneTimeTestSetup(new GetCapabilitiesTest());
-    }
-    
-    @Override
-    protected void oneTimeSetUp() throws Exception {
-        super.oneTimeSetUp();
-    }
-    
     @Override
     protected void populateDataDirectory(MockData dataDirectory) throws Exception {
         super.populateDataDirectory(dataDirectory);
@@ -51,6 +42,25 @@ public class GetCapabilitiesTest extends WCSTestSupport {
         
         // make sure the disabled coverage store is really disabled
         assertXpathEvaluatesTo("0", "count(//ows:Title[text()='World'])", dom);
+    }
+    
+    public void testSkipMisconfigured() throws Exception {
+        // enable skipping of misconfigured layers
+        GeoServerInfo global = getGeoServer().getGlobal();
+        global.setResourceErrorHandling(ResourceErrorHandling.SKIP_MISCONFIGURED_LAYERS);
+        getGeoServer().save(global);
+        
+        // manually misconfigure one layer
+        CoverageInfo cvInfo = getCatalog().getCoverageByName(getLayerId(MockData.TASMANIA_DEM));
+        cvInfo.setLatLonBoundingBox(null);
+        getCatalog().save(cvInfo);
+        
+        // check we got everything but that specific layer, and that the output is still schema compliant
+        Document dom = getAsDOM(BASEPATH + "?request=GetCapabilities&service=WCS&version=1.1.1");
+        checkValidationErrors(dom, WCS11_SCHEMA);
+        // print(dom);
+        int count = getCatalog().getCoverages().size();
+        assertEquals(count - 1, dom.getElementsByTagName("wcs:CoverageSummary").getLength());
     }
     
     public void testIgnoreWCS10Version() throws Exception {
@@ -280,5 +290,23 @@ public class GetCapabilitiesTest extends WCSTestSupport {
             layer.setAdvertised(true);
             getCatalog().save(layer);
         }
+    }
+    
+    public void testMetadataLink() throws Exception {
+        Catalog catalog = getCatalog();
+        CoverageInfo ci = catalog.getCoverageByName(getLayerId(TASMANIA_DEM));
+        MetadataLinkInfo ml = catalog.getFactory().createMetadataLink();
+        ml.setContent("http://www.geoserver.org/tasmania/dem.xml");
+        ml.setAbout("http://www.geoserver.org");
+        ci.getMetadataLinks().add(ml);
+        catalog.save(ci);
+        
+        Document dom = getAsDOM("wcs?request=GetCapabilities");
+        // print(dom);
+        checkValidationErrors(dom, WCS11_SCHEMA);
+        String xpathBase = "//wcs:CoverageSummary[wcs:Identifier = '" + TASMANIA_DEM.getLocalPart() + "']/ows:Metadata";
+        assertXpathEvaluatesTo("http://www.geoserver.org", xpathBase + "/@about", dom);
+        assertXpathEvaluatesTo("simple", xpathBase + "/@xlink:type", dom);
+        assertXpathEvaluatesTo("http://www.geoserver.org/tasmania/dem.xml", xpathBase + "/@xlink:href", dom);
     }
 }

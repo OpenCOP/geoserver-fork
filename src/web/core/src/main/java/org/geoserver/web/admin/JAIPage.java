@@ -13,8 +13,8 @@ import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.StringResourceModel;
 import org.apache.wicket.validation.validator.NumberValidator;
 import org.geoserver.config.GeoServer;
+import org.geoserver.config.GeoServerInfo;
 import org.geoserver.config.JAIInfo;
-import org.geoserver.web.GeoServerHomePage;
 
 /**
  * Edits the JAI configuration parameters
@@ -24,6 +24,10 @@ public class JAIPage extends ServerAdminPage {
 
     public JAIPage(){
         final IModel geoServerModel = getGeoServerModel();
+        
+        // this invokation will trigger a clone of the JAIInfo
+        // which will allow the modification proxy seeing changes on the
+        // Jai page with respect to the original JAIInfo object
         final IModel jaiModel = getJAIModel();
 
         // form and submit
@@ -54,9 +58,10 @@ public class JAIPage extends ServerAdminPage {
             @Override
             public void onSubmit() {
                 GeoServer gs = (GeoServer) geoServerModel.getObject();
-                gs.getGlobal().setJAI( (JAIInfo)jaiModel.getObject() );
-                gs.save( gs.getGlobal() ); 
-                setResponsePage(GeoServerHomePage.class);
+                GeoServerInfo global = gs.getGlobal();
+                global.setJAI( (JAIInfo)jaiModel.getObject());
+                gs.save( global );
+                doReturn();
             }
         };
         form.add(submit);
@@ -64,7 +69,7 @@ public class JAIPage extends ServerAdminPage {
         Button cancel = new Button("cancel") {
             @Override
             public void onSubmit() {
-                setResponsePage(GeoServerHomePage.class);
+                doReturn();
             }
         };
         form.add(cancel);

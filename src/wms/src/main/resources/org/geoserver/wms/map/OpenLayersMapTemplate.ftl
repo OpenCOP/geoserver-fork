@@ -83,7 +83,6 @@
             
             table.featureInfo th {
                 padding: .2em .2em;
-                text-transform: uppercase;
                 font-weight: bold;
                 background: #eee;
             }
@@ -100,7 +99,6 @@
                 text-align: left;
                 font-size: 100%;
                 font-weight: bold;
-                text-transform: uppercase;
                 padding: .2em .2em;
             }
         </style>
@@ -311,6 +309,20 @@
                     paletteSelector.disabled = false;
                 }
                 */
+            }
+            
+            // sets the chosen style
+            function setStyle(style){
+                // we may be switching style on setup
+                if(tiled == null)
+                  return;
+                  
+                tiled.mergeNewParams({
+                    styles: style
+                });
+                untiled.mergeNewParams({
+                    styles: style
+                });
             }
             
             // sets the chosen WMS version

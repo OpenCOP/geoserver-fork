@@ -36,6 +36,7 @@ import org.geotools.data.FeatureStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.data.simple.SimpleFeatureStore;
+import org.geotools.factory.Hints;
 import org.geotools.feature.DefaultFeatureCollection;
 import org.geotools.geometry.jts.JTS;
 import org.geotools.referencing.operation.projection.PointOutsideEnvelopeException;
@@ -98,6 +99,12 @@ public class InsertElementHandler extends AbstractTransactionElementHandler {
                 if (collection == null) {
                     collection = new DefaultFeatureCollection(null, schema);
                     schema2features.put(schema, collection);
+                }
+
+                // do a check for idegen = useExisting, if set try to tell the datastore to use
+                // the privided fid
+                if (insert.isIdGenUseExisting()) {
+                    feature.getUserData().put(Hints.USE_PROVIDED_FID, true);
                 }
 
                 collection.add(feature);
@@ -174,14 +181,15 @@ public class InsertElementHandler extends AbstractTransactionElementHandler {
                     //fire pre insert event
                     TransactionEvent event = new TransactionEvent(TransactionEventType.PRE_INSERT,
                             request, elementName, collection);
-                    event.setSource( insert );
+                    event.setSource(Insert.WFS11.unadapt(insert));
                     
                     listener.dataStoreChange( event );
                     fids.addAll(store.addFeatures(collection));
                     
                     //fire post insert event
                     SimpleFeatureCollection features = store.getFeatures(filterFactory.id(new HashSet<FeatureId>(fids)));
-                    event = new TransactionEvent(TransactionEventType.POST_INSERT, request, elementName, features, insert );
+                    event = new TransactionEvent(TransactionEventType.POST_INSERT, request, 
+                        elementName, features, Insert.WFS11.unadapt(insert));
                     listener.dataStoreChange( event );
                 }
             }

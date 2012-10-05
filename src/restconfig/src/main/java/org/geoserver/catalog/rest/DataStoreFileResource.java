@@ -38,6 +38,7 @@ import org.geotools.data.DefaultTransaction;
 import org.geotools.data.FeatureSource;
 import org.geotools.data.DataAccessFactory.Param;
 import org.geotools.data.FeatureStore;
+import org.geotools.data.FileDataStoreFactorySpi;
 import org.geotools.data.Transaction;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.geometry.jts.ReferencedEnvelope;
@@ -76,22 +77,33 @@ public class DataStoreFileResource extends StoreFileResource {
     }
     
     public static DataStoreFactorySpi lookupDataStoreFactory(String format) {
-        String factoryClassName = formatToDataStoreFactory.get( format );
-        
-        if ( factoryClassName == null ) {
-            throw new RestletException( "Unsupported format: " + format, Status.CLIENT_ERROR_BAD_REQUEST );
+        // first try and see if we know about this format directly
+        String factoryClassName = formatToDataStoreFactory.get(format);
+        if (factoryClassName != null) {
+            try {
+                Class factoryClass = Class.forName(factoryClassName);
+                DataStoreFactorySpi factory = (DataStoreFactorySpi) factoryClass.newInstance();
+                return factory;
+            } catch (Exception e) {
+                throw new RestletException("Datastore format unavailable: " + factoryClassName,
+                        Status.SERVER_ERROR_INTERNAL);
+            }
         }
-        
-        DataStoreFactorySpi factory;
-        try {
-            Class factoryClass = Class.forName( factoryClassName );
-            factory = (DataStoreFactorySpi) factoryClass.newInstance();
+
+        // if not, let's see if we have a file data store factory that knows about the extension
+        String extension = "." + format;
+        for (DataAccessFactory dataAccessFactory : DataStoreUtils.getAvailableDataStoreFactories()) {
+            if (dataAccessFactory instanceof FileDataStoreFactorySpi) {
+                FileDataStoreFactorySpi factory = (FileDataStoreFactorySpi) dataAccessFactory;
+                for (String handledExtension : factory.getFileExtensions()) {
+                    if (extension.equalsIgnoreCase(handledExtension)) {
+                        return factory;
+                    }
+                }
+            }
         }
-        catch ( Exception e ) {
-            throw new RestletException( "Datastore format unavailable: " + factoryClassName, Status.SERVER_ERROR_INTERNAL );
-        }
-        
-        return factory;
+
+        throw new RestletException("Unsupported format: " + format, Status.CLIENT_ERROR_BAD_REQUEST);
     }
     
     public static String lookupDataStoreFactoryFormat(String type) {
@@ -361,6 +373,11 @@ public class DataStoreFileResource extends StoreFileResource {
             
             //load the target datastore
             //DataStore ds = (DataStore) info.getDataStore(null);
+            Map<String, FeatureTypeInfo> featureTypesByNativeName =
+                new HashMap<String, FeatureTypeInfo>();
+            for (FeatureTypeInfo ftInfo : catalog.getFeatureTypesByDataStore(info)) {
+                featureTypesByNativeName.put(ftInfo.getNativeName(), ftInfo);
+            }
             
             String[] featureTypeNames = source.getTypeNames();
             for ( int i = 0; i < featureTypeNames.length; i++ ) {
@@ -371,8 +388,8 @@ public class DataStoreFileResource extends StoreFileResource {
                 }
                 
                 FeatureSource fs = ds.getFeatureSource(featureTypeNames[i]); 
-                FeatureTypeInfo ftinfo = 
-                    catalog.getFeatureTypeByDataStore(info, featureTypeNames[i] );
+                FeatureTypeInfo ftinfo = featureTypesByNativeName.get(featureTypeNames[i]);
+                
                 if ( ftinfo == null) {
                     //auto configure the feature type as well
                     ftinfo = builder.buildFeatureType(fs);

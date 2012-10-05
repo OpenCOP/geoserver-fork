@@ -119,6 +119,7 @@ public class CoverageResource extends AbstractCatalogResource {
         CoverageStoreInfo cs = catalog.getCoverageStoreByName(workspace, coveragestore);
         CoverageInfo original = catalog.getCoverageByCoverageStore( cs,  coverage );
         new CatalogBuilder(catalog).updateCoverage(original,c);
+        calculateOptionalFields(c, original);
         catalog.save( original );
         
         clear(original);
@@ -169,7 +170,7 @@ public class CoverageResource extends AbstractCatalogResource {
     protected void configurePersister(XStreamPersister persister, DataFormat format) {
         persister.setCallback( new XStreamPersister.Callback() {
             @Override
-            protected void postEncodeReference(Object obj, String ref,
+            protected void postEncodeReference(Object obj, String ref, String prefix, 
                     HierarchicalStreamWriter writer, MarshallingContext context) {
                 if ( obj instanceof NamespaceInfo ) {
                     NamespaceInfo ns = (NamespaceInfo) obj;

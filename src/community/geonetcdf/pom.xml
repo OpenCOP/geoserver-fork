@@ -10,6 +10,7 @@
   <groupId>org.geocent.netcdf</groupId>
   <artifactId>geonetcdf</artifactId>
   <version>1.0</version>
+  <name>NetCDF Coverage</name>
   
   <repositories>
 	<repository>

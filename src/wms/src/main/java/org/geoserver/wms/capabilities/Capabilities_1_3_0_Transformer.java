@@ -42,6 +42,7 @@ import org.geoserver.catalog.StyleInfo;
 import org.geoserver.catalog.WMSLayerInfo;
 import org.geoserver.config.ContactInfo;
 import org.geoserver.config.GeoServer;
+import org.geoserver.config.ResourceErrorHandling;
 import org.geoserver.ows.URLMangler.URLType;
 import org.geoserver.ows.util.KvpUtils;
 import org.geoserver.platform.ServiceException;
@@ -68,6 +69,7 @@ import org.opengis.referencing.NoSuchAuthorityCodeException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.operation.TransformException;
 import org.springframework.util.Assert;
+import org.vfny.geoserver.util.ResponseUtils;
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.ext.LexicalHandler;
@@ -173,6 +175,7 @@ public class Capabilities_1_3_0_Transformer extends TransformerBase {
         
         DimensionHelper dimensionHelper;
 
+        private boolean skipping;
 
         /**
          * Creates a new CapabilitiesTranslator object.
@@ -205,6 +208,9 @@ public class Capabilities_1_3_0_Transformer extends TransformerBase {
                     Capabilities_1_3_0_Translator.this.element(element, content);
                 }
             };
+            this.skipping = 
+                ResourceErrorHandling.SKIP_MISCONFIGURED_LAYERS.equals(
+                    wmsConfig.getGeoServer().getGlobal().getResourceErrorHandling());
 
             // register namespaces provided by extended capabilities
             for (ExtendedCapabilitiesProvider cp : extCapsProviders) {
@@ -397,27 +403,7 @@ public class Capabilities_1_3_0_Transformer extends TransformerBase {
 
                 element("Format", link.getType());
 
-                // check for "localhost" and turn it into a proper back reference
-                String content = link.getContent();
-                try {
-                    URL url = new URL(content);
-                    try {
-                        if ("localhost".equals(url.getHost())) {
-                            Map<String, String> kvp = null;
-                            if (url.getQuery() != null && !"".equals(url.getQuery())) {
-                                kvp = KvpUtils.parseQueryString(url.getQuery());
-                            }
-
-                            content = buildURL(request.getBaseUrl(), url.getPath(), kvp,
-                                    URLType.RESOURCE);
-                        }
-                    } catch (Exception e) {
-                        LOGGER.log(Level.WARNING,
-                                "Unable to create proper back referece for metadata url: "
-                                        + content, e);
-                    }
-                } catch (MalformedURLException e) {
-                }
+                String content = ResponseUtils.proxifyMetadataLink(link, request.getBaseUrl());
 
                 AttributesImpl orAtts = attributes("xlink:type", "simple", "xlink:href", content);
                 element("OnlineResource", null, orAtts);
@@ -743,7 +729,8 @@ public class Capabilities_1_3_0_Transformer extends TransformerBase {
             for (LayerInfo layer : layers) {
                 ResourceInfo resource = layer.getResource();
                 layerBbox = resource.getLatLonBoundingBox();
-                latlonBbox.expandToInclude(layerBbox);
+                if (layerBbox != null)
+                   latlonBbox.expandToInclude(layerBbox);
             }
 
             if (LOGGER.isLoggable(Level.FINE)) {
@@ -788,12 +775,18 @@ public class Capabilities_1_3_0_Transformer extends TransformerBase {
                 // ask for enabled() instead of isEnabled() to account for disabled resource/store
                 if (layer.enabled() && wmsExposable) {
                     try {
+                        mark();
                         handleLayer(layer);
+                        commit();
                     } catch (Exception e) {
                         // report what layer we failed on to help the admin locate and fix it
-                        throw new ServiceException(
-                                "Error occurred trying to write out metadata for layer: "
-                                        + layer.getName(), e);
+                        if (skipping) {
+                            reset();
+                        } else { 
+                            throw new ServiceException(
+                                "Error occurred trying to write out metadata for layer: " + 
+                                layer.getName(), e);
+                        }
                     }
                 }
             }

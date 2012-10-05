@@ -62,10 +62,6 @@ public class GeoServerRootAuthenticationProvider extends GeoServerAuthentication
             if (getSecurityManager().checkMasterPassword(token.getCredentials().toString())) {
                 Collection<GrantedAuthority> roles = new ArrayList<GrantedAuthority>();
                 roles.add(GeoServerRole.ADMIN_ROLE);
-                GeoServerRole adminRole = secMgr.getActiveRoleService().getAdminRole();
-                if (adminRole != null && !GeoServerRole.ADMIN_ROLE.equals(adminRole)) {
-                    roles.add(adminRole);
-                }
 
                 UsernamePasswordAuthenticationToken result = 
                     new UsernamePasswordAuthenticationToken(GeoServerUser.ROOT_USERNAME, null,roles);
@@ -76,6 +72,7 @@ public class GeoServerRootAuthenticationProvider extends GeoServerAuthentication
             
         // not BadCredentialException is thrown, maybe there is another user with 
         // the same name
+        log(new BadCredentialsException("Bad credentials for"+ token.getPrincipal()));
         return null;
     }
 
